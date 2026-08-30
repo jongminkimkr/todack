@@ -1843,13 +1843,39 @@ function addStep1Input(feed, restored){
   if (restored){ const { wrap } = makeBubble('bot', esc(prompt).replace(/\n/g,'<br>')); feed.appendChild(wrap); doRender(); }
   else typingThenText(feed, prompt).then(doRender);
 }
+function isJunk(text){
+  const t = text.replace(/\s/g,'');
+  if (t.length < 2) return true;
+  if (/^(.)\1{2,}$/.test(t)) return true;
+  if (/^[ㅋㅎㅠㅜㅡㄷ]+$/.test(t)) return true;
+  const JUNK_WORDS = [
+    '똥','방귀','오줌','쉬','응가','뿡','퍼','ㅋㅋ','ㅎㅎ','ㄷㄷ',
+    '테스트','test','테스팅','아무말','아무거나','ㅁㄴㅇㄹ','qwer','asdf',
+    '안녕','하이','ㅎㅇ','안녕하세요','hello','hi','헬로',
+    '모르겠','몰라','그냥','아무것','뭐라고','뭐뭐','어어어',
+  ];
+  return JUNK_WORDS.some(w => t.includes(w));
+}
+const JUNK_REPLIES = [
+  'ㅋㅋ 재밌는 걸 테스트해봤군요 😄\n진짜 고민이 생기면 언제든 다시 이야기해줘요.',
+  '오 테스트해봤군요 😄\n무슨 고민이든 진짜로 이야기하고 싶을 때 다시 적어줘요.',
+  '탐색 중이군요 🙂\n준비되면 진짜 하고 싶은 말을 적어줘요. 들을게요.',
+  '엥, 그건 좀 다른 얘긴 것 같은데요 😄\n진짜 마음이 있으면 편하게 적어줘요.',
+];
 function submitText(feed, ta, exRow, inputWrap){
   const text = ta.value.trim();
   if (!text){ ta.focus(); return; }
-  chatState.text = text;
   exRow.remove(); inputWrap.remove();
   const { wrap } = makeBubble('user', esc(text));
   appendMsg(feed, wrap);
+  if (isJunk(text)){
+    const reply = JUNK_REPLIES[Math.floor(Math.random()*JUNK_REPLIES.length)];
+    typingThenText(feed, reply).then(() => {
+      setTimeout(() => addStep1Input(feed, false), 400);
+    });
+    return;
+  }
+  chatState.text = text;
   const r = pickAdvice(text);
   chatState.result = r;
   if (r.urgent){
