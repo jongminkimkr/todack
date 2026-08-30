@@ -22,7 +22,7 @@
   --green-50:#F4FBF7;  --green-100:#E6F5EC; --green-200:#C8E6D5;
   --green-300:#7FD1A6; --green-500:#2FA36B; --green-600:#25895A; --green-700:#1F7A4D;
   --ink:#16261E; --ink-muted:#5C7268; --line:#DCEAE2;
-  --mood-5:#2FA36B; --mood-4:#7FD1A6; --mood-3:#C8E6D5; --mood-2:#F0C48A; --mood-1:#E39B8F;
+  --mood-5:#2FA36B; --mood-4:#7FD1A6; --mood-3:#C8E6D5; --mood-2:#F0C48A; --mood-1:#E39B8F; --mood-angry:#E8845A;
   --danger:#C0553F; --danger-bg:#FCEEEA;
   --radius:14px; --radius-lg:20px; --radius-pill:999px;
   --shadow-sm:0 1px 3px rgba(22,38,30,.06);
@@ -640,6 +640,7 @@ const MOODS = [
   { key:'okay',  emoji:'😐', label:'보통',      score:3, color:'var(--mood-3)' },
   { key:'hard',  emoji:'😟', label:'힘듦',      score:2, color:'var(--mood-2)' },
   { key:'tough', emoji:'😢', label:'매우 힘듦', score:1, color:'var(--mood-1)' },
+  { key:'angry', emoji:'😤', label:'짜증남',    score:2, color:'var(--mood-angry)' },
 ];
 const MOOD_BY_KEY = Object.fromEntries(MOODS.map(m => [m.key, m]));
 
