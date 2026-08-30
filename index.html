@@ -361,6 +361,195 @@ const Bookings = {
 };
 /* == LOGIC == */
 /* == FX == */
+const fx = {};
+
+/* AnimatedContent / AnimatedList 이식 — 등장 애니메이션 */
+fx.reveal = function(scope, sel = '[data-reveal]', opts = {}){
+  const { y = 14, dur = 620, stagger = 55, cap = 300 } = opts;
+  const nodes = [...(scope || document).querySelectorAll(sel)];
+  nodes.forEach((n, i) => {
+    if (REDUCED){ n.classList.remove('is-hidden-fx'); return; }
+    n.classList.add('is-hidden-fx');
+    const anim = n.animate(
+      [{ opacity:0, transform:`translateY(${y}px)` },
+       { opacity:1, transform:'translateY(0)' }],
+      { duration:dur, delay:Math.min(i * stagger, cap),
+        easing:'cubic-bezier(.22,.61,.36,1)', fill:'both' });
+    anim.finished.then(() => n.classList.remove('is-hidden-fx')).catch(() => {});
+  });
+};
+
+/* BlurText / SplitText 이식 — 단어 단위 흐림 해제 */
+fx.revealWords = function(el, opts = {}){
+  if (!el || REDUCED) return;
+  const { dur = 520, stagger = 42, cap = 420 } = opts;
+  const words = el.textContent.trim().split(/\s+/);
+  el.textContent = '';
+  words.forEach((w, i) => {
+    const span = document.createElement('span');
+    span.className = 'fx-word';
+    span.textContent = w;
+    el.append(span, document.createTextNode(' '));
+    span.animate(
+      [{ opacity:0, filter:'blur(8px)', transform:'translateY(8px)' },
+       { opacity:1, filter:'blur(0px)', transform:'translateY(0)' }],
+      { duration:dur, delay:Math.min(i * stagger, cap),
+        easing:'cubic-bezier(.22,.61,.36,1)', fill:'both' });
+  });
+};
+
+/* TextType 이식 — 타이핑. 반환값을 호출하면 즉시 완성 */
+fx.typeText = function(el, text, { speed = 20, onDone } = {}){
+  if (!el) return () => {};
+  if (REDUCED){ el.textContent = text; onDone && onDone(); return () => {}; }
+  el.textContent = '';
+  el.classList.add('is-typing');
+  let i = 0, timer = null, finished = false;
+  const finish = () => {
+    if (finished) return; finished = true;
+    clearTimeout(timer); el.textContent = text;
+    el.classList.remove('is-typing'); onDone && onDone();
+  };
+  const step = () => {
+    el.textContent = text.slice(0, ++i);
+    if (i >= text.length) return finish();
+    const ch = text[i - 1];
+    const wait = /[.!?…]/.test(ch) ? speed * 9 : /[,·、]/.test(ch) ? speed * 4 : speed;
+    timer = setTimeout(step, wait);
+  };
+  timer = setTimeout(step, 140);
+  return finish;                       // 탭하면 건너뛰기용
+};
+
+/* DecryptedText 이식 — 왼쪽부터 순서대로 확정 */
+fx.scrambleTo = function(el, text, { dur = 850 } = {}){
+  if (!el) return;
+  if (REDUCED){ el.textContent = text; return; }
+  const POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const settleAt = text.split('').map((_, i) => 0.2 + (i / text.length) * 0.75);
+  const start = performance.now();
+  const tick = now => {
+    const p = Math.min((now - start) / dur, 1);
+    el.textContent = text.split('').map((c, i) =>
+      (p >= settleAt[i] || c === '-') ? c : POOL[(Math.random() * POOL.length) | 0]
+    ).join('');
+    if (p < 1) requestAnimationFrame(tick); else el.textContent = text;
+  };
+  requestAnimationFrame(tick);
+};
+
+/* CountUp 이식 */
+fx.countUp = function(el, to, { dur = 850 } = {}){
+  if (!el) return;
+  if (REDUCED || to === 0){ el.textContent = String(to); return; }
+  const start = performance.now();
+  const tick = now => {
+    const p = Math.min((now - start) / dur, 1);
+    el.textContent = String(Math.round(to * (1 - Math.pow(1 - p, 3))));
+    if (p < 1) requestAnimationFrame(tick); else el.textContent = String(to);
+  };
+  requestAnimationFrame(tick);
+};
+
+/* SpotlightCard 이식 — 커서 위치를 CSS 변수로 전달 */
+fx.spotlight = function(el){
+  if (!el) return;
+  el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
+    el.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+  });
+};
+
+/* TiltedCard 이식 — 마우스가 있는 환경에서만 */
+fx.tilt = function(el, max = 6){
+  if (!el || REDUCED || !matchMedia('(hover:hover)').matches) return;
+  el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width  - .5;
+    const py = (e.clientY - r.top)  / r.height - .5;
+    el.style.transform =
+      `perspective(700px) rotateX(${(-py * max).toFixed(2)}deg) rotateY(${(px * max).toFixed(2)}deg)`;
+  });
+  el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+};
+
+/* Magnet 이식 — CSS transition이 스프링 복귀를 담당한다 */
+fx.magnet = function(el, strength = .22){
+  if (!el || REDUCED || !matchMedia('(hover:hover)').matches) return;
+  el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width  / 2);
+    const dy = e.clientY - (r.top  + r.height / 2);
+    el.style.transform = `translate(${(dx * strength).toFixed(1)}px, ${(dy * strength).toFixed(1)}px)`;
+  });
+  el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+};
+
+/* ClickSpark 이식 — 스파크가 없으면 rAF 루프가 스스로 멈춘다 */
+fx.clickSpark = (function(){
+  if (REDUCED) return function(){};
+  let canvas = null, ctx = null, sparks = [], running = false;
+  function resize(){
+    const d = devicePixelRatio || 1;
+    canvas.width = innerWidth * d; canvas.height = innerHeight * d;
+    canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px';
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function ensure(){
+    if (canvas) return;
+    canvas = document.createElement('canvas');
+    canvas.className = 'spark-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.append(canvas);
+    ctx = canvas.getContext('2d');
+    resize();
+    addEventListener('resize', resize);
+  }
+  function loop(){
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    sparks = sparks.filter(s => s.life > 0);
+    for (const s of sparks){
+      s.life -= .03; s.x += s.vx; s.y += s.vy; s.vy += .07; s.vx *= .985;
+      ctx.globalAlpha = Math.max(s.life, 0);
+      ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx * 3.2, s.y - s.vy * 3.2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    if (sparks.length) requestAnimationFrame(loop); else running = false;
+  }
+  return function(x, y, color = '#2FA36B', count = 10){
+    ensure();
+    for (let i = 0; i < count; i++){
+      const a = (Math.PI * 2 * i) / count + Math.random() * .5;
+      const sp = 1.5 + Math.random() * 1.9;
+      sparks.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, life:1, color });
+    }
+    if (!running){ running = true; requestAnimationFrame(loop); }
+  };
+})();
+
+/* Aurora 마크업 헬퍼 */
+fx.AURORA = '<div class="aurora" aria-hidden="true">' +
+            '<span class="aurora__blob"></span><span class="aurora__blob"></span>' +
+            '<span class="aurora__blob"></span></div>';
+
+/* 화면이 그려진 뒤 공통으로 붙이는 이펙트 */
+fx.enhance = function(scope){
+  scope.querySelectorAll('.card--spot').forEach(fx.spotlight);
+  scope.querySelectorAll('[data-tilt]').forEach(el => fx.tilt(el));
+  scope.querySelectorAll('[data-magnet]').forEach(el => fx.magnet(el));
+  fx.reveal(scope);
+};
+
+/* 전역 클릭 스파크 — data-spark 속성이 있는 요소에만 */
+document.addEventListener('pointerdown', e => {
+  const t = e.target.closest('[data-spark]');
+  if (!t) return;
+  const c = getComputedStyle(t).getPropertyValue('--spark').trim();
+  fx.clickSpark(e.clientX, e.clientY, c || '#2FA36B');
+});
 /* == VIEWS == */
 function renderHome(root){ root.innerHTML = '<p>HOME</p>'; }
 function renderChat(root){ root.innerHTML = '<p>CHAT</p>'; }
@@ -375,6 +564,7 @@ function router(){
   const root = document.getElementById('view');
   root.innerHTML = '';
   ROUTES[key](root);
+  try { fx.enhance(root); } catch (err) { console.warn('fx 실패', err); }
   document.querySelectorAll('.tabbar a').forEach(a =>
     a.classList.toggle('is-active', a.dataset.tab === key));
   document.querySelector('.tabbar')
