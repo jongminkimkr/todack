@@ -292,6 +292,37 @@ a{color:inherit; text-decoration:none}
   background:var(--green-100); color:var(--green-700); font-size:12.5px; line-height:1.6;
 }
 /* == CHAT == */
+.chat__greet{display:flex; gap:12px; align-items:flex-start; margin-bottom:16px}
+.chat__avatar{
+  flex:none; width:38px; height:38px; border-radius:50%; background:var(--green-100);
+  display:grid; place-items:center; color:var(--green-500);
+}
+.chat__avatar svg{width:22px; height:22px}
+.chat__bubble{font-size:14.5px; line-height:1.65; min-height:1.6em; flex:1}
+
+.chat__examples{margin:12px 0 18px}
+.chat__send{margin-top:14px}
+
+.result{display:grid; gap:12px; margin-bottom:18px}
+.result__tag{
+  display:inline-block; padding:5px 12px; border-radius:var(--radius-pill);
+  background:var(--green-100); color:var(--green-700); font-size:12px; font-weight:800;
+}
+.result__reflect{font-size:17px; font-weight:700; line-height:1.55; letter-spacing:-.02em; margin-top:10px}
+.result__advice{font-size:14.5px; color:var(--ink-muted); line-height:1.7; margin-top:8px; min-height:1.7em}
+.tip{display:flex; gap:11px; align-items:flex-start; padding:14px 16px}
+.tip__no{
+  flex:none; width:23px; height:23px; border-radius:50%; background:var(--green-500); color:#fff;
+  display:grid; place-items:center; font-size:12px; font-weight:800;
+}
+.tip__text{font-size:14px; line-height:1.6}
+
+.result--urgent{border-color:#EFC9BE; background:var(--danger-bg)}
+.result--urgent .result__tag{background:#F6DCD4; color:var(--danger)}
+.result--urgent .tip__no{background:var(--danger)}
+.result--urgent .result__reflect{color:var(--danger)}
+
+.chat__actions{display:grid; gap:9px; margin-top:6px}
 /* == BOOKING == */
 /* == CALENDAR == */
 </style>
@@ -756,7 +787,112 @@ function renderHome(root){
   fx.countUp(document.getElementById('statMonth'), monthCount);
   fx.revealWords(document.getElementById('heroSub'));
 }
-function renderChat(root){ root.innerHTML = '<p>CHAT</p>'; }
+let chatState = { text:'', result:null };
+
+const CHAT_EXAMPLES = [
+  '시험이 다가와서 불안해요',
+  '친구랑 사이가 어색해졌어요',
+  '집에 있는 게 힘들어요',
+  '요즘 아무 의욕이 없어요',
+];
+
+function renderChat(root){
+  if (chatState.result) renderChatResult(root);
+  else renderChatInput(root);
+}
+
+function renderChatInput(root){
+  root.innerHTML = `
+    <div class="card chat__greet" data-reveal>
+      <span class="chat__avatar" aria-hidden="true"><svg><use href="#logo-clover"/></svg></span>
+      <p class="chat__bubble" id="greet"></p>
+    </div>
+
+    <div data-reveal>
+      <label class="label" for="worry">지금 마음에 걸리는 일</label>
+      <div class="field">
+        <textarea id="worry" rows="5"
+          placeholder="편하게 적어도 괜찮아요. 문장이 정리되지 않아도 돼요."
+          maxlength="500">${esc(chatState.text)}</textarea>
+      </div>
+      <div class="chip-row chat__examples">
+        ${CHAT_EXAMPLES.map(e =>
+          `<button class="chip" data-example="${esc(e)}">${esc(e)}</button>`).join('')}
+      </div>
+      <button class="btn btn--primary btn--block" id="send" data-spark>이야기 나누기</button>
+    </div>
+
+    <p class="disclaimer">
+      여기서 나눈 이야기는 이 기기에만 남고 어디에도 전송되지 않아요.
+      간편 상담은 전문 심리상담을 대신하지 않아요.
+    </p>
+  `;
+
+  fx.typeText(document.getElementById('greet'),
+    '안녕하세요. 무슨 일이 있었는지 편하게 적어 주세요. 정답을 말하지 않아도 괜찮아요.');
+
+  const ta = document.getElementById('worry');
+  root.querySelectorAll('[data-example]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ta.value = btn.dataset.example;
+      ta.focus();
+    });
+  });
+
+  document.getElementById('send').addEventListener('click', () => {
+    const text = ta.value.trim();
+    if (!text){ ta.focus(); return; }
+    chatState = { text, result: pickAdvice(text) };
+    renderChat(root);
+    fx.enhance(root);
+  });
+}
+
+function renderChatResult(root){
+  const r = chatState.result;
+  const urgent = !!r.urgent;
+
+  root.innerHTML = `
+    <div class="result">
+      <div class="card ${urgent ? 'result--urgent' : ''}" ${urgent ? '' : 'data-reveal'}>
+        <span class="result__tag">${esc(r.label)}</span>
+        <p class="result__reflect" id="reflect">${esc(r.reflect)}</p>
+        <p class="result__advice" id="advice">${urgent ? esc(r.advice) : ''}</p>
+      </div>
+      ${r.tips.map((t, i) => `
+        <div class="card tip ${urgent ? 'result--urgent' : ''}" ${urgent ? '' : 'data-reveal'}>
+          <span class="tip__no" aria-hidden="true">${i + 1}</span>
+          <span class="tip__text">${esc(t)}</span>
+        </div>`).join('')}
+    </div>
+
+    <div class="chat__actions">
+      <a class="btn btn--primary btn--block" href="#/booking" data-spark>
+        ${urgent ? '지금 위클래스 상담 신청하기' : '위클래스 상담 신청하기'}
+      </a>
+      <a class="btn btn--ghost btn--block" href="#/calendar">오늘 감정 기록하기</a>
+      <button class="btn btn--ghost btn--block" id="again">다시 이야기하기</button>
+    </div>
+
+    <p class="disclaimer">
+      ${urgent
+        ? '지금 많이 힘들다면 혼자 견디지 마세요. 자살예방 상담전화 <b>109</b>, 청소년 상담전화 <b>1388</b>은 24시간 열려 있어요.'
+        : '토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요. 더 이야기하고 싶다면 위클래스 상담을 신청해 보세요.'}
+    </p>
+  `;
+
+  if (!urgent){
+    fx.revealWords(document.getElementById('reflect'));
+    fx.typeText(document.getElementById('advice'), r.advice, { speed: 18 });
+  }
+  // urgent일 때는 어떤 연출도 하지 않는다 — 전부 즉시 보인다
+
+  document.getElementById('again').addEventListener('click', () => {
+    chatState = { text: chatState.text, result: null };
+    renderChat(root);
+    fx.enhance(root);
+  });
+}
 function renderBooking(root){ root.innerHTML = '<p>BOOKING</p>'; }
 function renderCalendar(root){ root.innerHTML = '<p>CALENDAR</p>'; }
 /* == ROUTER == */
