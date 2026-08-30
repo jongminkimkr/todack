@@ -255,6 +255,42 @@ a{color:inherit; text-decoration:none}
   background:var(--white); border:1px dashed var(--line); border-radius:var(--radius-lg);
 }
 /* == HOME == */
+.hero{
+  position:relative; overflow:hidden; border-radius:24px;
+  background:linear-gradient(160deg,var(--white),var(--green-50));
+  border:1px solid var(--line); padding:30px 22px 26px; margin-bottom:22px;
+}
+.hero__inner{position:relative; z-index:1}
+.hero__logo{width:44px; height:44px; color:var(--green-500); display:block; margin-bottom:12px}
+.hero__title{font-size:25px; font-weight:800; letter-spacing:-.035em; margin-bottom:10px}
+.hero__sub{font-size:14px; color:var(--ink-muted); line-height:1.65}
+
+.menu{display:grid; gap:10px}
+.menu__item{display:flex; align-items:center; gap:14px; padding:16px 18px}
+.menu__ico{
+  flex:none; width:44px; height:44px; border-radius:13px; background:var(--green-100);
+  display:grid; place-items:center; font-size:21px;
+}
+.menu__body{display:flex; flex-direction:column; gap:2px; flex:1; min-width:0}
+.menu__body b{font-size:15.5px; font-weight:700}
+.menu__arrow{color:var(--green-300); font-size:17px; transition:transform var(--dur-base) var(--ease-spring)}
+.menu__item:hover .menu__arrow{transform:translateX(4px); color:var(--green-500)}
+
+.stat-row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.stat{display:flex; flex-direction:column; align-items:center; gap:2px; padding:16px 12px}
+.stat__num{font-size:26px; font-weight:800; color:var(--green-700); line-height:1.2}
+
+.next-book{display:flex; align-items:center; gap:12px; padding:15px 18px; margin-top:10px}
+.next-book__date{
+  flex:none; text-align:center; background:var(--green-100); border-radius:12px;
+  padding:8px 12px; color:var(--green-700); font-weight:800; line-height:1.2;
+}
+.next-book__date small{display:block; font-size:11px; font-weight:600; color:var(--ink-muted)}
+
+.disclaimer{
+  margin:26px 0 8px; padding:13px 15px; border-radius:var(--radius);
+  background:var(--green-100); color:var(--green-700); font-size:12.5px; line-height:1.6;
+}
 /* == CHAT == */
 /* == BOOKING == */
 /* == CALENDAR == */
@@ -551,7 +587,74 @@ document.addEventListener('pointerdown', e => {
   fx.clickSpark(e.clientX, e.clientY, c || '#2FA36B');
 });
 /* == VIEWS == */
-function renderHome(root){ root.innerHTML = '<p>HOME</p>'; }
+function renderHome(root){
+  const today = ymd(new Date());
+  const todayMood = Moods.get(today);
+  const thisMonth = today.slice(0, 7);
+  const monthCount = Object.keys(Moods.all()).filter(d => d.startsWith(thisMonth)).length;
+  const upcoming = Bookings.all()
+    .filter(b => b.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+
+  const menu = [
+    ['#/chat',     '💬', '간편 상담',  '고민을 적으면 함께 정리해 드려요'],
+    ['#/booking',  '📝', '상담 신청',  '위클래스 상담을 앱에서 바로 예약해요'],
+    ['#/calendar', '📅', '감정달력',   '오늘의 마음을 기록하고 돌아봐요'],
+  ];
+
+  root.innerHTML = `
+    <section class="hero">
+      ${fx.AURORA}
+      <div class="hero__inner">
+        <svg class="hero__logo" aria-hidden="true"><use href="#logo-clover"/></svg>
+        <h2 class="hero__title shiny">마음을 토닥이고,<br>도움을 더하다</h2>
+        <p class="hero__sub" id="heroSub">혼자 담아두지 않아도 괜찮아요. 여기서 먼저 이야기해 봐요.</p>
+      </div>
+    </section>
+
+    <div class="menu">
+      ${menu.map(([href, ico, title, desc]) => `
+        <a class="card card--tap card--spot menu__item" href="${href}"
+           data-reveal data-tilt data-spark>
+          <span class="menu__ico" aria-hidden="true">${ico}</span>
+          <span class="menu__body"><b>${title}</b><span class="muted">${desc}</span></span>
+          <span class="menu__arrow" aria-hidden="true">→</span>
+        </a>`).join('')}
+    </div>
+
+    <h3 class="section-title">나의 기록</h3>
+    <div class="stat-row">
+      <div class="card stat" data-reveal>
+        <b class="stat__num" id="statMonth">0</b>
+        <span class="muted">이번 달 기록한 날</span>
+      </div>
+      <div class="card stat" data-reveal>
+        <b class="stat__num">${todayMood ? MOOD_BY_KEY[todayMood.mood].emoji : '—'}</b>
+        <span class="muted">${todayMood ? '오늘 ' + MOOD_BY_KEY[todayMood.mood].label : '오늘 기록 없음'}</span>
+      </div>
+    </div>
+
+    ${upcoming ? `
+      <h3 class="section-title">다가오는 상담</h3>
+      <a class="card card--tap next-book glare" href="#/booking" data-reveal>
+        <span class="next-book__date">
+          ${Number(upcoming.date.slice(5,7))}/${Number(upcoming.date.slice(8,10))}
+          <small>${upcoming.slot.split(' ')[0]}</small>
+        </span>
+        <span class="menu__body"><b>위클래스 상담 예약됨</b>
+          <span class="muted">신청번호 ${esc(upcoming.id)}</span></span>
+        <span class="menu__arrow" aria-hidden="true">→</span>
+      </a>` : ''}
+
+    <p class="disclaimer">
+      토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요.
+      마음이 많이 힘들 때는 위클래스 선생님이나 믿을 수 있는 어른에게 꼭 이야기해 주세요.
+    </p>
+  `;
+
+  fx.countUp(document.getElementById('statMonth'), monthCount);
+  fx.revealWords(document.getElementById('heroSub'));
+}
 function renderChat(root){ root.innerHTML = '<p>CHAT</p>'; }
 function renderBooking(root){ root.innerHTML = '<p>BOOKING</p>'; }
 function renderCalendar(root){ root.innerHTML = '<p>CALENDAR</p>'; }
