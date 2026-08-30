@@ -1349,8 +1349,8 @@ function restoreHistory(feed){
   const { wrap: w0 } = makeBubble('bot', '안녕하세요 😊<br>지금 기분이 어떤지 먼저 알려줄 수 있어요?');
   feed.appendChild(w0);
   if (s.step >= 1 && s.mood){
-    const m = MOOD_BY_KEY[s.mood];
-    const { wrap: wm } = makeBubble('user', `${m.emoji} ${m.label}`);
+    const m = CHAT_MOODS.find(x => x.key === s.mood) || MOOD_BY_KEY[s.mood];
+    const { wrap: wm } = makeBubble('user', `${m ? m.emoji : ''} ${m ? m.label : s.mood}`);
     feed.appendChild(wm);
     addStep1Input(feed, true);
   }
