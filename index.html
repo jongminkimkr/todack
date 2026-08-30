@@ -4,7 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4FBF7">
+<meta name="description" content="학생의 심리상담 접근성을 높이는 상담·감정기록 앱">
 <title>토닥+ — 마음을 토닥이고, 도움을 더하다</title>
+
+<!-- 홈 화면 설치용. 아래 파일이 없어도(= file://로 그냥 열어도) 앱은 그대로 동작한다. -->
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="64x64" href="./icons/favicon-64.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<!-- iOS는 매니페스트의 display를 무시하므로 별도 메타가 필요하다 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="토닥+">
 <style>
 /* == TOKENS == */
 :root{
@@ -47,10 +58,18 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
-  font-family:var(--font); color:var(--ink); background:var(--green-50);
+  font-family:var(--font); font-size:16px;      /* 16px 미만이면 iOS가 입력 시 확대한다 */
+  color:var(--ink); background:var(--green-50);
   -webkit-font-smoothing:antialiased; line-height:1.55;
   padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:contain;                /* 당겨서 새로고침 방지 */
 }
+html{-webkit-text-size-adjust:100%}             /* 가로 회전 시 글자 부풀기 방지 */
+button, a, .chip, .card--tap, .cal__cell, .date-chip, .mood-btn{
+  touch-action:manipulation;                    /* 더블탭 확대와 300ms 지연 제거 */
+  -webkit-tap-highlight-color:transparent;
+}
+button, .tabbar a{-webkit-user-select:none; user-select:none}
 h1,h2,h3{margin:0; line-height:1.3; letter-spacing:-.02em}
 p{margin:0}
 button{font:inherit; color:inherit; cursor:pointer; border:0; background:none}
@@ -60,7 +79,8 @@ a{color:inherit; text-decoration:none}
 .appbar{
   position:sticky; top:0; z-index:30;
   display:flex; align-items:center; gap:8px;
-  max-width:var(--app-w); margin:0 auto; padding:14px 20px 10px;
+  max-width:var(--app-w); margin:0 auto;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 10px;   /* 노치 아래로 */
   background:linear-gradient(to bottom,var(--green-50) 70%,transparent);
 }
 .appbar__logo{width:26px; height:26px; color:var(--green-500); flex:none}
@@ -255,6 +275,19 @@ a{color:inherit; text-decoration:none}
   background:var(--white); border:1px dashed var(--line); border-radius:var(--radius-lg);
 }
 /* == HOME == */
+.storage-warn{
+  max-width:var(--app-w); margin:0 auto 10px; padding:11px 16px;
+  background:var(--danger-bg); color:var(--danger);
+  font-size:12.5px; font-weight:700; line-height:1.55;
+  border-top:1px solid #EFC9BE; border-bottom:1px solid #EFC9BE;
+}
+.disclaimer--warn{background:var(--danger-bg); color:var(--danger)}
+.form-err{
+  margin:8px 3px 0; font-size:12.5px; font-weight:700; color:var(--danger);
+}
+.form-note{
+  margin:8px 3px 0; font-size:12px; line-height:1.5; color:var(--ink-muted);
+}
 .hero{
   position:relative; overflow:hidden; border-radius:24px;
   background:linear-gradient(160deg,var(--white),var(--green-50));
@@ -324,7 +357,13 @@ a{color:inherit; text-decoration:none}
 
 .chat__actions{display:grid; gap:9px; margin-top:6px}
 /* == BOOKING == */
-.book__dates{display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px}
+.book__dates{display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:8px}
+@media (max-width:360px){                        /* iPhone SE 등 */
+  #view{padding-left:14px; padding-right:14px}
+  .book__dates{grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px}
+  .tabbar a{font-size:10px}
+  .hero__title{font-size:22px}
+}
 .date-chip{
   display:flex; flex-direction:column; align-items:center; gap:1px;
   padding:11px 4px; border-radius:var(--radius);
@@ -363,6 +402,7 @@ a{color:inherit; text-decoration:none}
 .mine__item{display:flex; align-items:center; gap:12px; padding:14px 16px}
 .mine__cancel{
   flex:none; font-size:12px; font-weight:700; color:var(--ink-muted);
+  min-width:56px; min-height:44px;              /* 손가락 터치 최소 크기 */
   padding:6px 11px; border-radius:var(--radius-pill); border:1px solid var(--line);
   transition:color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
@@ -592,6 +632,17 @@ function ymd(date){
 }
 function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 /* == STORE == */
+/* Safari는 file://에서, 사생활 보호 모드는 어디서든 localStorage를 막는다.
+   저장이 안 되는데 "접수됐어요"라고 말하는 것이 이 앱에서 가장 나쁜 거짓말이므로
+   시작할 때 한 번 확인해서 화면에 알린다. */
+const STORAGE_OK = (() => {
+  try {
+    localStorage.setItem('todak.probe', '1');
+    localStorage.removeItem('todak.probe');
+    return true;
+  } catch { return false; }
+})();
+
 const DB = {
   read(key, fallback){
     try {
@@ -688,6 +739,12 @@ function availableDates(from = new Date(), days = 14){
     out.push(ymd(d));
   }
   return out;
+}
+
+/* 홈·내 신청 내역 두 곳에서 같은 배지를 그린다 */
+function dateBadge(date, slot){
+  return `<span class="next-book__date">${Number(date.slice(5,7))}/${Number(date.slice(8,10))}` +
+         `<small>${esc(String(slot).split(' ')[0])}</small></span>`;
 }
 
 function formatKDate(s){
@@ -944,10 +1001,7 @@ function renderHome(root){
     ${upcoming ? `
       <h3 class="section-title">다가오는 상담</h3>
       <a class="card card--tap next-book glare" href="#/booking" data-reveal>
-        <span class="next-book__date">
-          ${Number(upcoming.date.slice(5,7))}/${Number(upcoming.date.slice(8,10))}
-          <small>${esc(upcoming.slot.split(' ')[0])}</small>
-        </span>
+        ${dateBadge(upcoming.date, upcoming.slot)}
         <span class="menu__body"><b>위클래스 상담 예약됨</b>
           <span class="muted">신청번호 ${esc(upcoming.id)}</span></span>
         <span class="menu__arrow" aria-hidden="true">→</span>
@@ -957,10 +1011,28 @@ function renderHome(root){
       토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요.
       마음이 많이 힘들 때는 위클래스 선생님이나 믿을 수 있는 어른에게 꼭 이야기해 주세요.
     </p>
+
+    <button class="btn btn--ghost btn--block" id="wipe" style="margin-top:10px">
+      이 기기에서 내 기록 모두 지우기
+    </button>
+    <p class="muted" style="text-align:center; margin-top:8px">
+      여러 사람이 함께 쓰는 컴퓨터라면 사용 후 지워 주세요.
+    </p>
   `;
 
   fx.countUp(document.getElementById('statMonth'), monthCount);
   fx.revealWords(document.getElementById('heroSub'));
+
+  document.getElementById('wipe').addEventListener('click', () => {
+    if (!confirm('이 기기에 저장된 감정 기록과 상담 신청을 모두 지울까요?\n되돌릴 수 없어요.')) return;
+    try {
+      localStorage.removeItem('todak.moods');
+      localStorage.removeItem('todak.bookings');
+    } catch { /* 저장소가 막혀 있으면 지울 것도 없다 */ }
+    chatState = { text:'', result:null };
+    bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
+    rerender(root, renderHome);
+  });
 }
 let chatState = { text:'', result:null };
 
@@ -1003,8 +1075,9 @@ function renderChatInput(root){
     </p>
   `;
 
-  fx.typeText(document.getElementById('greet'),
+  const skipGreet = fx.typeText(document.getElementById('greet'),
     '안녕하세요. 무슨 일이 있었는지 편하게 적어 주세요. 정답을 말하지 않아도 괜찮아요.');
+  root.querySelector('.chat__greet').addEventListener('click', skipGreet);
 
   const ta = document.getElementById('worry');
   root.querySelectorAll('[data-example]').forEach(btn => {
@@ -1057,7 +1130,8 @@ function renderChatResult(root){
 
   if (!urgent){
     fx.revealWords(document.getElementById('reflect'));
-    fx.typeText(document.getElementById('advice'), r.advice, { speed: 18 });
+    const skipAdvice = fx.typeText(document.getElementById('advice'), r.advice, { speed: 18 });
+    root.querySelector('.result .card').addEventListener('click', skipAdvice);
   }
   // urgent일 때는 어떤 연출도 하지 않는다 — 전부 즉시 보인다 (§5.5)
 
@@ -1066,7 +1140,10 @@ function renderChatResult(root){
     rerender(root, renderChat);
   });
 }
-let bookState = { step:1, date:null, slot:null, done:null };
+function emptyBookForm(){ return { grade:'', classNo:'', name:'', topics:[], message:'' }; }
+/* 폼 값을 DOM에만 두면 「이전으로」 한 번에 전부 사라진다.
+   어렵게 쓴 「하고 싶은 말」이 날아가는 지점이라 상태로 올린다. */
+let bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
 
 function stepperHTML(step){
   const names = ['날짜 선택','정보 입력','신청 완료'];
@@ -1117,10 +1194,7 @@ function renderBookingPick(root){
       <div class="mine">
         ${mine.map(b => `
           <div class="card mine__item" data-reveal>
-            <span class="next-book__date">
-              ${Number(b.date.slice(5,7))}/${Number(b.date.slice(8,10))}
-              <small>${esc(b.slot.split(' ')[0])}</small>
-            </span>
+            ${dateBadge(b.date, b.slot)}
             <span class="menu__body">
               <b>${esc(b.id)}</b>
               <span class="muted">${esc(b.topics.join(', ') || '주제 미선택')}</span>
@@ -1191,6 +1265,15 @@ function renderBookingPick(root){
 
 /* --- 2단계: 신청 정보 입력 --- */
 function renderBookingForm(root){
+  /* 렌더에서 예외가 나면 화면이 통째로 비므로 폼 상태는 없으면 만들어 쓴다 */
+  const f = bookState.form || (bookState.form = emptyBookForm());
+  if (!f.seeded){
+    f.seeded = true;
+    if (!f.message && chatState.text){
+      f.message = chatState.text.slice(0, 300);   // maxlength와 맞춘다
+      f.carried = true;
+    }
+  }
   root.innerHTML = `
     ${stepperHTML(2)}
     <h2 class="hero__title" style="font-size:21px" data-reveal>신청 정보를 알려 주세요</h2>
@@ -1199,18 +1282,23 @@ function renderBookingForm(root){
     </div>
 
     <div class="form-group" data-reveal>
-      <label class="label">학년 · 반 · 이름</label>
+      <label class="label" for="grade">학년 · 반 · 이름</label>
       <div class="form-row">
-        <div class="field"><input id="grade" inputmode="numeric" placeholder="학년" maxlength="1"></div>
-        <div class="field"><input id="classNo" inputmode="numeric" placeholder="반" maxlength="2"></div>
-        <div class="field"><input id="name" placeholder="이름" maxlength="10"></div>
+        <div class="field"><input id="grade" inputmode="numeric" aria-label="학년"
+          placeholder="학년" maxlength="1" value="${esc(f.grade)}"></div>
+        <div class="field"><input id="classNo" inputmode="numeric" aria-label="반"
+          placeholder="반" maxlength="2" value="${esc(f.classNo)}"></div>
+        <div class="field"><input id="name" aria-label="이름"
+          placeholder="이름" maxlength="10" value="${esc(f.name)}"></div>
       </div>
+      <p class="form-err" id="formErr" role="alert" hidden></p>
     </div>
 
     <div class="form-group" data-reveal>
       <label class="label">어떤 이야기를 나누고 싶나요? (여러 개 선택 가능)</label>
       <div class="chip-row" id="topics">
-        ${TOPICS.map(t => `<button class="chip" data-topic="${esc(t)}">${esc(t)}</button>`).join('')}
+        ${TOPICS.map(t => `<button class="chip ${f.topics.includes(t) ? 'is-on' : ''}"
+          data-topic="${esc(t)}" aria-pressed="${f.topics.includes(t)}">${esc(t)}</button>`).join('')}
       </div>
     </div>
 
@@ -1218,20 +1306,30 @@ function renderBookingForm(root){
       <label class="label" for="msg">선생님께 미리 하고 싶은 말 (선택)</label>
       <div class="field">
         <textarea id="msg" rows="4" maxlength="300"
-          placeholder="적어두면 상담이 더 편해져요. 비워 두어도 괜찮아요.">${esc(chatState.text)}</textarea>
+          placeholder="적어두면 상담이 더 편해져요. 비워 두어도 괜찮아요.">${esc(f.message)}</textarea>
       </div>
+      ${f.carried ? '<p class="form-note">간편 상담에 적은 내용을 옮겨 왔어요. 지우고 새로 쓰셔도 괜찮아요.</p>' : ''}
     </div>
 
     <button class="btn btn--primary btn--block" id="submit" data-spark>신청 완료하기</button>
     <button class="btn btn--ghost btn--block" id="back" style="margin-top:9px">이전으로</button>
   `;
 
-  const picked = new Set();
+  ['grade', 'classNo', 'name'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { f[id] = el.value; });
+  });
+  const msgEl = document.getElementById('msg');
+  msgEl.addEventListener('input', () => { f.message = msgEl.value; });
+
   root.querySelectorAll('[data-topic]').forEach(btn => {
     btn.addEventListener('click', () => {
       const t = btn.dataset.topic;
-      picked.has(t) ? picked.delete(t) : picked.add(t);
-      btn.classList.toggle('is-on', picked.has(t));
+      const i = f.topics.indexOf(t);
+      if (i >= 0) f.topics.splice(i, 1); else f.topics.push(t);
+      const on = f.topics.includes(t);
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-pressed', String(on));
     });
   });
 
@@ -1241,20 +1339,24 @@ function renderBookingForm(root){
   });
 
   document.getElementById('submit').addEventListener('click', () => {
-    const grade   = document.getElementById('grade').value.trim();
-    const classNo = document.getElementById('classNo').value.trim();
-    const name    = document.getElementById('name').value.trim();
-    if (!grade || !classNo || !name){
-      alert('학년, 반, 이름을 모두 입력해 주세요.');
+    /* 비어 있는 첫 칸으로 포커스를 보낸다 — alert만 띄우면 폰에서 어디가 비었는지 찾아야 한다 */
+    const missing = ['grade', 'classNo', 'name'].find(id => !f[id].trim());
+    const err = document.getElementById('formErr');
+    if (missing){
+      err.textContent = '학년, 반, 이름을 모두 입력해 주세요.';
+      err.hidden = false;
+      document.getElementById(missing).focus();
       return;
     }
+    err.hidden = true;
     bookState.done = Bookings.add({
       date: bookState.date, slot: bookState.slot,
-      grade, classNo, name,
-      topics: [...picked],
-      message: document.getElementById('msg').value.trim(),
+      grade: f.grade.trim(), classNo: f.classNo.trim(), name: f.name.trim(),
+      topics: [...f.topics],
+      message: f.message.trim(),
     });
     bookState.step = 3;
+    bookState.form = emptyBookForm();
     rerender(root, renderBooking);
   });
 }
@@ -1266,15 +1368,16 @@ function renderBookingDone(root){
     ${stepperHTML(3)}
     <div class="card card--star done">
       <div class="done__check" aria-hidden="true">🍀</div>
-      <h2 style="font-size:20px">상담 신청이 접수됐어요</h2>
+      <h2 style="font-size:20px">${STORAGE_OK ? '상담 신청이 접수됐어요' : '신청 내용을 적어 두세요'}</h2>
       <p class="done__id" id="doneId">${' '.repeat(12)}</p>
       <p class="muted">신청번호</p>
       <div class="done__meta">${formatKDate(b.date)} · ${esc(b.slot)}</div>
     </div>
 
-    <p class="disclaimer" style="margin-top:18px">
-      이 신청은 <b>이 기기에만 저장</b>돼요. 실제 위클래스 선생님께 자동으로 전달되지는 않으니,
-      약속한 시간에 위클래스를 방문해 주세요.
+    <p class="disclaimer ${STORAGE_OK ? '' : 'disclaimer--warn'}" style="margin-top:18px">
+      ${STORAGE_OK
+        ? '이 신청은 <b>이 기기에만 저장</b>돼요. 실제 위클래스 선생님께 자동으로 전달되지는 않으니, 약속한 시간에 위클래스를 방문해 주세요.'
+        : '이 브라우저에서는 신청 내용이 <b>저장되지 않았어요.</b> 위 날짜와 시간을 따로 적어 두고 위클래스를 방문해 주세요.'}
     </p>
 
     <a class="btn btn--primary btn--block" href="#/calendar" style="margin-top:6px" data-spark>
@@ -1288,7 +1391,7 @@ function renderBookingDone(root){
   fx.scrambleTo(document.getElementById('doneId'), b.id);
 
   document.getElementById('newBooking').addEventListener('click', () => {
-    bookState = { step:1, date:null, slot:null, done:null };
+    bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
     rerender(root, renderBooking);
   });
 }
@@ -1394,6 +1497,7 @@ function renderCalendar(root){
 }
 
 function openMoodSheet(date, onSaved){
+  const opener = document.activeElement;   // 닫을 때 이 날짜 칸으로 포커스를 되돌린다
   const rec = Moods.get(date);
   let picked = rec ? rec.mood : null;
 
@@ -1430,6 +1534,8 @@ function openMoodSheet(date, onSaved){
   const close = () => {
     dim.remove(); sheet.remove();
     document.removeEventListener('keydown', onKey);
+    /* 포커스를 잃으면 키보드·스크린리더 사용자가 문서 맨 위로 튕긴다 */
+    if (opener && typeof opener.focus === 'function') opener.focus();
   };
   const onKey = e => { if (e.key === 'Escape') close(); };
   document.addEventListener('keydown', onKey);
@@ -1469,14 +1575,39 @@ function router(){
   root.innerHTML = '';
   ROUTES[key](root);
   try { fx.enhance(root); } catch (err) { console.warn('fx 실패', err); }
-  document.querySelectorAll('.tabbar a').forEach(a =>
-    a.classList.toggle('is-active', a.dataset.tab === key));
+  document.querySelectorAll('.tabbar a').forEach(a => {
+    const on = a.dataset.tab === key;
+    a.classList.toggle('is-active', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  /* 상담 신청 탭을 떠나면 완료 화면을 닫는다 — 다시 들어왔을 때
+     예전 신청번호가 그대로 떠 있으면 방금 신청한 것으로 오해한다. (폼 입력값은 유지) */
+  if (key !== 'booking' && bookState.done){ bookState.done = null; bookState.step = 1; }
   document.querySelector('.tabbar')
     .style.setProperty('--tab-i', TAB_ORDER.indexOf(key));
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange', router);
+
+/* 저장이 안 되는 브라우저에서는 그 사실을 처음부터 보이게 한다 */
+if (!STORAGE_OK){
+  document.querySelector('.appbar').insertAdjacentHTML('afterend',
+    '<p class="storage-warn" role="status">이 브라우저에서는 기록이 저장되지 않아요. ' +
+    '감정 기록과 상담 신청이 남지 않습니다.</p>');
+}
+
 router();
+
+/* == PWA == */
+/* 서비스워커는 https 또는 localhost에서만 등록된다.
+   file://로 열면 조용히 건너뛰고 앱은 평소대로 동작한다. */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('서비스워커 등록 실패 (앱 동작에는 영향 없음)', err));
+  });
+}
+
 /* == SELFTEST == */
 function selfTest(){
   const log = [];
