@@ -340,6 +340,97 @@ const MOODS = [
   { key:'tough', emoji:'😢', label:'매우 힘듦', score:1, color:'var(--mood-1)' },
 ];
 const MOOD_BY_KEY = Object.fromEntries(MOODS.map(m => [m.key, m]));
+
+const CRISIS_WORDS = ['자해','자살','죽고 싶','죽고싶','죽어버','사라지고 싶','사라지고싶',
+                      '없어지고 싶','없어지고싶','살기 싫','살기싫','뛰어내리'];
+
+const CRISIS_RULE = {
+  id:'crisis', label:'지금 바로 도움받기', urgent:true, suggest:true,
+  reflect:'지금 많이 힘든 마음이 느껴져요. 그 이야기를 여기에 적어준 것만으로도 큰 용기예요.',
+  advice:'이건 혼자 견딜 일이 아니에요. 지금 바로 도움을 받을 수 있는 곳이 있어요.',
+  tips:[
+    '지금 곁에 있는 어른(담임 선생님, 위클래스 선생님, 보호자)에게 바로 말하기',
+    '자살예방 상담전화 109 — 24시간, 무료, 익명으로 통화할 수 있어요',
+    '청소년 상담전화 1388 — 전화·문자·카카오톡 모두 가능해요',
+  ],
+};
+
+const DEFAULT_RULE = {
+  id:'default', label:'마음 정리하기', suggest:true,
+  reflect:'이야기해 줘서 고마워요. 무엇 때문에 힘든지 아직 또렷하지 않아도 괜찮아요.',
+  advice:'마음이 복잡할 때는 이름을 붙여보는 것만으로도 조금 정리가 돼요.',
+  tips:[
+    '지금 기분을 한 단어로 표현한다면 뭘까 생각해 보기',
+    '이 마음이 언제부터 시작됐는지 떠올려 보기',
+    '오늘 감정달력에 지금 기분을 기록해 두기',
+  ],
+};
+
+/* 배열 순서 = 우선순위. 키워드 개수가 같으면 앞쪽 규칙이 이긴다. */
+const RULES = [
+  { id:'study', label:'학업·성적',
+    keywords:['성적','공부','시험','수행평가','수행','학원','등급','내신','숙제','과제','집중','등수','점수'],
+    reflect:'성적과 공부 때문에 마음이 무거웠군요. 잘하고 싶은 마음이 클수록 더 아프게 느껴져요.',
+    advice:'성적은 나를 설명하는 여러 가지 중 하나일 뿐이에요. 지금은 결과보다 방법을 조금 바꿔볼 때예요.',
+    tips:['오늘 하루 안에서 내가 실제로 해낸 것 한 가지를 적어 보기',
+          '목표를 "이번 시험 전체"가 아니라 "오늘 30분, 한 단원"으로 잘게 쪼개 보기',
+          '성적과 상관없이 내가 나를 괜찮게 느꼈던 순간 떠올려 보기'],
+    suggest:true },
+
+  { id:'friend', label:'친구 관계',
+    keywords:['친구','왕따','따돌림','싸웠','싸움','오해','뒷담','무리','단톡','눈치','소외','절교','괴롭'],
+    reflect:'친구 사이의 일은 겉으로는 사소해 보여도 마음에는 오래 남아요. 많이 신경 쓰였겠어요.',
+    advice:'관계의 문제는 대부분 "누가 잘못했나"보다 "내가 뭘 원하는가"를 먼저 정하면 실마리가 보여요.',
+    tips:['그 친구에게 바라는 게 사과인지, 설명인지, 거리두기인지 하나만 골라 보기',
+          '하고 싶은 말을 "너는~" 대신 "나는 ~해서 속상했어"로 바꿔서 적어 보기',
+          '지금 관계가 나를 계속 깎아내린다면, 거리를 두는 것도 선택지라는 걸 기억하기'],
+    suggest:true },
+
+  { id:'family', label:'가족',
+    keywords:['부모','엄마','아빠','가족','집에서','형','누나','오빠','언니','동생','잔소리','기대','비교','집안'],
+    reflect:'집은 쉬는 곳이어야 하는데, 거기서 힘들면 마음 둘 곳이 없죠. 많이 지쳤겠어요.',
+    advice:'가족 문제는 내가 바꿀 수 있는 부분과 그렇지 않은 부분을 나누는 데서 시작해요.',
+    tips:['지금 상황에서 내가 바꿀 수 있는 것과 없는 것을 각각 하나씩 적어 보기',
+          '집에서 잠깐이라도 혼자 안전하게 있을 수 있는 시간·장소 만들어 두기',
+          '말로 꺼내기 어렵다면, 하고 싶은 말을 메모로 먼저 정리해 보기'],
+    suggest:true },
+
+  { id:'career', label:'진로·미래',
+    keywords:['진로','대학','전공','꿈','미래','졸업','직업','취업','문과','이과','원서','수시','정시'],
+    reflect:'앞으로의 길이 잘 안 보일 때는 조급해지기 쉬워요. 그 막막함은 이상한 게 아니에요.',
+    advice:'진로는 한 번에 정하는 답이 아니라 여러 번 고쳐 쓰는 초안에 가까워요.',
+    tips:['좋아하는 일과 잘하는 일을 각각 세 가지씩 적고 겹치는 게 있는지 보기',
+          '"어떤 직업"보다 "어떤 하루를 살고 싶은지"부터 떠올려 보기',
+          '관심 있는 분야를 이번 달 안에 30분만 찾아보기로 정해 두기'],
+    suggest:true },
+
+  { id:'anxiety', label:'불안·긴장',
+    keywords:['불안','걱정','긴장','초조','두근','떨려','발표','잠이 안','불면','숨이','답답','조마조마','실수할'],
+    reflect:'몸이 먼저 반응할 만큼 긴장하고 있었군요. 그만큼 잘 해내고 싶었던 거예요.',
+    advice:'불안은 없애는 것보다 크기를 줄이는 게 현실적인 목표예요.',
+    tips:['4초 들이쉬고 6초 내쉬기를 다섯 번 — 내쉬는 숨을 더 길게',
+          '걱정을 "지금 내가 할 수 있는 일"과 "아직 일어나지 않은 일"로 나눠 적기',
+          '최악의 상황을 적고, 실제로 그렇게 될 확률을 숫자로 매겨 보기'],
+    suggest:true },
+
+  { id:'depress', label:'우울·무기력',
+    keywords:['우울','무기력','슬프','슬퍼','눈물','의욕','지치','재미없','공허','아무것도','귀찮','혼자'],
+    reflect:'아무것도 하고 싶지 않은 상태가 이어지면 스스로를 탓하기 쉬운데, 그건 게으른 게 아니라 지쳐 있다는 신호예요.',
+    advice:'이럴 때는 크게 회복하려 하기보다 아주 작은 것 하나만 움직여 보는 게 나아요.',
+    tips:['오늘은 딱 한 가지만 — 물 마시기, 창문 열기 중 하나만 해 보기',
+          '10분만 밖에 나가 햇빛을 쬐어 보기',
+          '이 상태가 2주 넘게 이어진다면 꼭 위클래스 상담을 신청하기'],
+    suggest:true },
+
+  { id:'selfesteem', label:'자존감',
+    keywords:['외모','살','뚱뚱','못생','자존감','자신감','비교','부족한','한심','쓸모','못하는'],
+    reflect:'스스로를 계속 깎아내리는 생각은 사실보다 훨씬 크게 들려요. 그 목소리에 많이 시달렸겠어요.',
+    advice:'나에 대한 평가를 남의 기준에서 잠깐 떼어놓는 연습이 필요해요.',
+    tips:['오늘 나에게 했던 말을 친구가 들었다면 뭐라고 했을지 생각해 보기',
+          '잘하지 못한 일 말고, 그냥 해낸 일 세 가지 적어 보기',
+          '비교하게 되는 SNS를 하루만 쉬어 보기'],
+    suggest:true },
+];
 /* == UTIL == */
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c =>
@@ -396,6 +487,16 @@ const Bookings = {
   cancel(id){ DB.write('bookings', this.all().filter(b => b.id !== id)); }
 };
 /* == LOGIC == */
+function pickAdvice(text){
+  const t = String(text || '');
+  if (CRISIS_WORDS.some(w => t.includes(w))) return CRISIS_RULE;
+  let best = null, bestScore = 0;
+  for (const rule of RULES){
+    const score = rule.keywords.reduce((n, k) => n + (t.includes(k) ? 1 : 0), 0);
+    if (score > bestScore){ bestScore = score; best = rule; }
+  }
+  return best || DEFAULT_RULE;
+}
 /* == FX == */
 const fx = {};
 
@@ -707,6 +808,21 @@ function selfTest(){
   ok('삭제 후 null', Moods.get('2026-08-30'), null);
   if (backup === null) localStorage.removeItem('todak.moods');
   else localStorage.setItem('todak.moods', backup);
+
+  // --- pickAdvice
+  ok('학업 고민 분류',   pickAdvice('요즘 시험 성적이 너무 안 나와서 공부가 손에 안 잡혀요').id, 'study');
+  ok('친구 고민 분류',   pickAdvice('친구랑 크게 싸웠는데 먼저 말 걸기가 무서워요').id, 'friend');
+  ok('가족 고민 분류',   pickAdvice('엄마가 자꾸 잔소리해서 집에 있기 싫어요').id, 'family');
+  ok('진로 고민 분류',   pickAdvice('어떤 전공을 골라야 할지 진로가 막막해요').id, 'career');
+  ok('불안 분류',        pickAdvice('발표만 하면 심장이 두근거리고 너무 긴장돼요').id, 'anxiety');
+  ok('무입력은 기본 응답', pickAdvice('').id, 'default');
+  ok('무관한 말도 기본 응답', pickAdvice('오늘 점심 맛있었다').id, 'default');
+  ok('키워드 많은 쪽이 이김',
+     pickAdvice('성적이랑 시험 때문에 진로가 걱정이에요').id, 'study');
+  ok('위기 키워드가 최우선',
+     pickAdvice('성적 때문에 그냥 죽고 싶어요').id, 'crisis');
+  ok('위기 응답은 상담 연결 강제', pickAdvice('자해하고 싶어요').urgent, true);
+  ok('일반 응답은 긴급 아님', pickAdvice('공부가 힘들어요').urgent, undefined);
 
   console.log('\n' + log.join('\n') + '\n');
   const failed = log.filter(l => l.startsWith('❌')).length;
