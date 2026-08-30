@@ -331,32 +331,109 @@ a{color:inherit; text-decoration:none}
   background:var(--green-100); color:var(--green-700); font-size:12.5px; line-height:1.6;
 }
 /* == CHAT == */
-.chat__greet{display:flex; gap:12px; align-items:flex-start; margin-bottom:16px}
+/* 대화 스크롤 영역 */
+.chat-feed{
+  display:flex; flex-direction:column; gap:12px;
+  padding-bottom:8px;
+}
+/* 말풍선 공통 */
+.msg{display:flex; gap:9px; align-items:flex-end; max-width:100%}
+.msg--bot{align-self:flex-start}
+.msg--user{align-self:flex-end; flex-direction:row-reverse}
 .chat__avatar{
-  flex:none; width:38px; height:38px; border-radius:50%; background:var(--green-100);
-  display:grid; place-items:center; color:var(--green-500);
+  flex:none; width:34px; height:34px; border-radius:50%; background:var(--green-100);
+  display:grid; place-items:center; color:var(--green-500); margin-bottom:2px;
 }
-.chat__avatar svg{width:22px; height:22px}
-.chat__bubble{font-size:14.5px; line-height:1.65; min-height:1.6em; flex:1}
-.chat__examples{margin:12px 0 18px}
-.result{display:grid; gap:12px; margin-bottom:18px}
-.result__tag{
-  display:inline-block; padding:5px 12px; border-radius:var(--radius-pill);
-  background:var(--green-100); color:var(--green-700); font-size:12px; font-weight:800;
+.chat__avatar svg{width:20px; height:20px}
+.bubble{
+  max-width:82%; padding:11px 14px; border-radius:18px;
+  font-size:14.5px; line-height:1.65; word-break:keep-all;
 }
-.result__reflect{font-size:17px; font-weight:700; line-height:1.55; letter-spacing:-.02em; margin-top:10px}
-.result__advice{font-size:14.5px; color:var(--ink-muted); line-height:1.7; margin-top:8px; min-height:1.7em}
+.bubble--bot{
+  background:var(--white); border:1px solid var(--line);
+  border-bottom-left-radius:4px;
+}
+.bubble--user{
+  background:var(--green-500); color:#fff;
+  border-bottom-right-radius:4px;
+}
+.bubble--urgent{background:var(--danger-bg); border-color:#EFC9BE; color:var(--danger)}
+/* 타이핑 점 */
+.bubble--typing{padding:13px 18px}
+.typing-dot{
+  display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:var(--ink-muted); margin:0 2px;
+  animation:typing-bounce .9s ease-in-out infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.18s}
+.typing-dot:nth-child(3){animation-delay:.36s}
+@keyframes typing-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+/* 선택지 버튼 그룹 */
+.chat-choices{
+  display:flex; flex-wrap:wrap; gap:7px;
+  padding-left:43px; /* avatar 너비+gap 맞춤 */
+}
+.chat-choice{
+  padding:8px 14px; border-radius:var(--radius-pill);
+  border:1.5px solid var(--green-300); background:var(--white);
+  font-size:13.5px; font-weight:700; color:var(--green-700);
+  transition:background var(--dur-fast) var(--ease-out),
+             color var(--dur-fast) var(--ease-out),
+             transform var(--dur-fast) var(--ease-spring);
+}
+.chat-choice:active{transform:scale(.95)}
+.chat-choice.is-picked{background:var(--green-500); color:#fff; border-color:var(--green-500)}
+/* 감정 선택 — 가로 5칸 */
+.mood-choices{
+  display:grid; grid-template-columns:repeat(5,1fr); gap:6px;
+  padding-left:43px;
+  width:100%; box-sizing:border-box;
+}
+.mood-choice{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 2px 7px; border-radius:var(--radius);
+  border:1.5px solid var(--line); background:var(--white);
+  font-size:10px; font-weight:700; color:var(--ink-muted);
+  line-height:1.2; text-align:center; word-break:keep-all;
+  min-width:0; width:100%; box-sizing:border-box;
+  transition:border-color var(--dur-fast) var(--ease-out),
+             background var(--dur-fast) var(--ease-out),
+             transform var(--dur-fast) var(--ease-spring);
+}
+.mood-choice .e{font-size:22px; line-height:1; display:block}
+.mood-choice:active{transform:scale(.93)}
+.mood-choice.is-picked{background:var(--green-50); border-color:var(--green-500); color:var(--green-700)}
+/* 입력창 영역 */
+.chat-input-wrap{
+  display:flex; gap:8px; align-items:flex-end;
+  margin-top:4px;
+}
+.chat-input-wrap .field{flex:1; margin:0}
+.chat-input-wrap textarea{
+  resize:none; min-height:48px; max-height:130px;
+  padding:11px 13px; font-size:14.5px; line-height:1.5;
+}
+.chat-send{
+  flex:none; width:44px; height:44px; border-radius:50%;
+  background:var(--green-500); color:#fff;
+  display:grid; place-items:center;
+  transition:background var(--dur-fast) var(--ease-out),
+             transform var(--dur-fast) var(--ease-spring);
+}
+.chat-send:active{transform:scale(.9)}
+.chat-send:disabled{background:var(--line); color:var(--ink-muted)}
+/* 결과 팁 카드 */
 .tip{display:flex; gap:11px; align-items:flex-start; padding:14px 16px}
 .tip__no{
   flex:none; width:23px; height:23px; border-radius:50%; background:var(--green-500); color:#fff;
   display:grid; place-items:center; font-size:12px; font-weight:800;
 }
 .tip__text{font-size:14px; line-height:1.6}
-.result--urgent{border-color:#EFC9BE; background:var(--danger-bg)}
-.result--urgent .result__tag{background:#F6DCD4; color:var(--danger)}
-.result--urgent .tip__no{background:var(--danger)}
-.result--urgent .result__reflect{color:var(--danger)}
-.chat__actions{display:grid; gap:9px; margin-top:6px}
+.tip--urgent .tip__no{background:var(--danger)}
+.tip--urgent{border-color:#EFC9BE; background:var(--danger-bg)}
+.chat__actions{display:grid; gap:9px; margin-top:14px}
+/* 예시 칩 */
+.chat__examples{margin:0 0 10px; padding-left:43px; flex-wrap:wrap}
 /* == BOOKING == */
 .book__dates{display:grid; grid-template-columns:repeat(auto-fill,minmax(68px,1fr)); gap:8px}
 @media (max-width:360px){
@@ -1155,13 +1232,28 @@ function renderHome(root){
         localStorage.removeItem('todak.moods');
         localStorage.removeItem('todak.bookings');
       } catch { /* 저장소가 막혀 있으면 지울 것도 없다 */ }
-      chatState = { text:'', result:null };
+      chatState = { step:0, mood:null, text:'', focus:null, result:null };
       bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
       rerender(root, renderHome);
     });
   });
 }
-let chatState = { text:'', result:null };
+/* =============================================
+   대화형 간편 상담 — 멀티턴 채팅 UI
+   단계:
+   0 → 인사 + 감정 선택 (5개 버튼)
+   1 → 무슨 일인지 텍스트 입력
+   2 → 공감 메시지 + 2차 질문 (선택지 3개)
+   3 → 맞춤 조언 + 팁 카드 + 액션 버튼
+   위기어 감지 시 즉시 CRISIS 단계
+   ============================================= */
+let chatState = {
+  step: 0,        // 0~3, 'crisis'
+  mood: null,     // MOODS key
+  text: '',       // 사용자 입력 텍스트
+  focus: null,    // 2차 선택지에서 고른 항목
+  result: null,   // pickAdvice 결과
+};
 
 const CHAT_EXAMPLES = [
   '시험이 다가와서 불안해요',
@@ -1190,100 +1282,343 @@ function sampleExamples(){
   return arr.slice(0, 4);
 }
 
+/* 말풍선 DOM 헬퍼 */
+function botAvatar(){
+  const s = document.createElement('span');
+  s.className = 'chat__avatar';
+  s.setAttribute('aria-hidden','true');
+  s.innerHTML = '<svg><use href="#logo-clover"/></svg>';
+  return s;
+}
+function makeBubble(type, html, extraClass){
+  const wrap = document.createElement('div');
+  wrap.className = `msg msg--${type}`;
+  if (type === 'bot') wrap.appendChild(botAvatar());
+  const b = document.createElement('div');
+  b.className = `bubble bubble--${type}${extraClass ? ' '+extraClass : ''}`;
+  b.innerHTML = html;
+  wrap.appendChild(b);
+  return { wrap, bubble: b };
+}
+function appendMsg(feed, el){
+  feed.appendChild(el);
+  el.scrollIntoView({ behavior:'smooth', block:'end' });
+}
+
+/* 타이핑 점 → 실제 텍스트로 교체 */
+function typingThenText(feed, text, extraClass){
+  return new Promise(resolve => {
+    const { wrap, bubble } = makeBubble('bot',
+      '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>',
+      'bubble--typing');
+    appendMsg(feed, wrap);
+    const delay = REDUCED ? 0 : Math.min(900, 300 + text.length * 8);
+    setTimeout(() => {
+      bubble.className = `bubble bubble--bot${extraClass ? ' '+extraClass : ''}`;
+      if (REDUCED){
+        bubble.textContent = text;
+        resolve(bubble);
+      } else {
+        bubble.textContent = '';
+        fx.typeText(bubble, text, { speed:16 });
+        const dur = text.length * 16 + 200;
+        setTimeout(() => resolve(bubble), dur);
+      }
+    }, delay);
+  });
+}
+
 function renderChat(root){
-  if (chatState.result) renderChatResult(root);
-  else renderChatInput(root);
+  /* 탭 진입 시 상태 초기화 (result 있으면 결과 유지) */
+  root.innerHTML = '';
+
+  const feed = document.createElement('div');
+  feed.className = 'chat-feed';
+  root.appendChild(feed);
+
+  if (chatState.step === 0) { startStep0(feed); return; }
+
+  /* 이미 진행된 대화 복원 후 현재 단계 렌더 */
+  restoreHistory(feed);
 }
 
-function renderChatInput(root){
-  root.innerHTML = `
-    <div class="card chat__greet" data-reveal>
-      <span class="chat__avatar" aria-hidden="true"><svg><use href="#logo-clover"/></svg></span>
-      <p class="chat__bubble" id="greet"></p>
-    </div>
-
-    <div data-reveal>
-      <label class="label" for="worry">지금 마음에 걸리는 일</label>
-      <div class="field">
-        <textarea id="worry" rows="5"
-          placeholder="편하게 적어도 괜찮아요. 문장이 정리되지 않아도 돼요."
-          maxlength="500">${esc(chatState.text)}</textarea>
-      </div>
-      <div class="chip-row chat__examples">
-        ${sampleExamples().map(e =>
-          `<button class="chip" data-example="${esc(e)}">${esc(e)}</button>`).join('')}
-      </div>
-      <button class="btn btn--primary btn--block" id="send" data-spark>이야기 나누기</button>
-    </div>
-
-    <p class="disclaimer">
-      여기서 나눈 이야기는 이 기기에만 남고 어디에도 전송되지 않아요.
-      간편 상담은 전문 심리상담을 대신하지 않아요.
-    </p>
-  `;
-
-  const skipGreet = fx.typeText(document.getElementById('greet'),
-    '안녕하세요. 무슨 일이 있었는지 편하게 적어 주세요. 정답을 말하지 않아도 괜찮아요.');
-  root.querySelector('.chat__greet').addEventListener('click', skipGreet);
-
-  const ta = document.getElementById('worry');
-  root.querySelectorAll('[data-example]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      ta.value = btn.dataset.example;
-      ta.focus();
-    });
-  });
-
-  document.getElementById('send').addEventListener('click', () => {
-    const text = ta.value.trim();
-    if (!text){ ta.focus(); return; }
-    chatState = { text, result: pickAdvice(text) };
-    rerender(root, renderChat);
-  });
-}
-
-function renderChatResult(root){
-  const r = chatState.result;
-  const urgent = !!r.urgent;
-
-  root.innerHTML = `
-    <div class="result">
-      <div class="card ${urgent ? 'result--urgent' : ''}" ${urgent ? '' : 'data-reveal'}>
-        <span class="result__tag">${esc(r.label)}</span>
-        <p class="result__reflect" id="reflect">${esc(r.reflect)}</p>
-        <p class="result__advice" id="advice">${urgent ? esc(r.advice) : ''}</p>
-      </div>
-      ${r.tips.map((t, i) => `
-        <div class="card tip ${urgent ? 'result--urgent' : ''}" ${urgent ? '' : 'data-reveal'}>
-          <span class="tip__no" aria-hidden="true">${i + 1}</span>
-          <span class="tip__text">${esc(t)}</span>
-        </div>`).join('')}
-    </div>
-
-    <div class="chat__actions">
-      <a class="btn btn--primary btn--block" href="#/booking" data-spark>
-        ${urgent ? '지금 위클래스 상담 신청하기' : '위클래스 상담 신청하기'}
-      </a>
-      <a class="btn btn--ghost btn--block" href="#/calendar">오늘 감정 기록하기</a>
-      <button class="btn btn--ghost btn--block" id="again">다시 이야기하기</button>
-    </div>
-
-    <p class="disclaimer">
-      ${urgent
-        ? '지금 많이 힘들다면 혼자 견디지 마세요. 자살예방 상담전화 <b><a href="tel:109">109</a></b>, 청소년 상담전화 <b><a href="tel:1388">1388</a></b>은 24시간 열려 있어요.'
-        : '토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요. 더 이야기하고 싶다면 위클래스 상담을 신청해 보세요.'}
-    </p>
-  `;
-
-  if (!urgent){
-    fx.revealWords(document.getElementById('reflect'));
-    const skipAdvice = fx.typeText(document.getElementById('advice'), r.advice, { speed: 18 });
-    root.querySelector('.result .card').addEventListener('click', skipAdvice);
+/* 대화 히스토리 복원 (탭 재진입 시 이전 말풍선 재현) */
+function restoreHistory(feed){
+  const s = chatState;
+  /* step 0 봇 인사 */
+  const { wrap: w0 } = makeBubble('bot', '안녕하세요 😊<br>지금 기분이 어떤지 먼저 알려줄 수 있어요?');
+  feed.appendChild(w0);
+  if (s.step >= 1 && s.mood){
+    const m = MOOD_BY_KEY[s.mood];
+    const { wrap: wm } = makeBubble('user', `${m.emoji} ${m.label}`);
+    feed.appendChild(wm);
+    addStep1Input(feed, true);
   }
+  if (s.step >= 2 && s.text){
+    const { wrap: wu } = makeBubble('user', esc(s.text));
+    feed.appendChild(wu);
+    if (s.step === 'crisis' || (s.result && s.result.urgent)){
+      showCrisisResult(feed); return;
+    }
+    const greetLine = s.result
+      ? s.result.reflect
+      : '이야기해줘서 고마워요. 조금 더 알아볼게요.';
+    const { wrap: wb2 } = makeBubble('bot', esc(greetLine));
+    feed.appendChild(wb2);
+    if (s.step >= 2){
+      addStep2Choices(feed, true);
+    }
+  }
+  if (s.step === 3 && s.result){
+    if (s.focus){
+      const { wrap: wf } = makeBubble('user', esc(s.focus));
+      feed.appendChild(wf);
+    }
+    showFinalResult(feed);
+  }
+}
 
-  document.getElementById('again').addEventListener('click', () => {
-    chatState = { text: chatState.text, result: null };
-    rerender(root, renderChat);
+/* ── 단계 0: 인사 + 감정 선택 ── */
+function startStep0(feed){
+  typingThenText(feed, '안녕하세요 😊\n지금 기분이 어떤지 먼저 알려줄 수 있어요?').then(() => {
+    const row = document.createElement('div');
+    row.className = 'mood-choices';
+    MOODS.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'mood-choice';
+      btn.innerHTML = `<span class="e">${m.emoji}</span>${m.label}`;
+      btn.addEventListener('click', () => {
+        row.querySelectorAll('.mood-choice').forEach(b => b.disabled = true);
+        btn.classList.add('is-picked');
+        chatState.mood = m.key;
+        /* 사용자 버블 */
+        const { wrap } = makeBubble('user', `${m.emoji} ${m.label}`);
+        feed.appendChild(wrap);
+        row.remove();
+        chatState.step = 1;
+        /* 짧은 지연 후 다음 단계 */
+        setTimeout(() => addStep1Input(feed, false), 300);
+      });
+      row.appendChild(btn);
+    });
+    feed.appendChild(row);
+    row.scrollIntoView({ behavior:'smooth', block:'end' });
+  });
+}
+
+/* ── 단계 1: 무슨 일인지 텍스트 입력 ── */
+function addStep1Input(feed, restored){
+  const moodKey = chatState.mood;
+  const m = MOOD_BY_KEY[moodKey];
+  let prompt;
+  if (!m || m.score >= 4)
+    prompt = '좋은 소식이네요 😊\n그래도 마음에 걸리는 일이 있다면 편하게 적어 줘요.';
+  else if (m.score === 3)
+    prompt = '그렇군요. 무슨 일이 있었는지 편하게 이야기해 줘요.';
+  else
+    prompt = '힘들었겠어요 😢\n어떤 일이 있었는지 조금만 이야기해 줄 수 있어요?';
+
+  const doRender = () => {
+    /* 예시 칩 */
+    const exRow = document.createElement('div');
+    exRow.className = 'chip-row chat__examples';
+    sampleExamples().forEach(e => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = e;
+      chip.addEventListener('click', () => { ta.value = e; ta.focus(); });
+      exRow.appendChild(chip);
+    });
+    /* 입력창 */
+    const inputWrap = document.createElement('div');
+    inputWrap.className = 'chat-input-wrap';
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'field';
+    const ta = document.createElement('textarea');
+    ta.placeholder = '문장이 정리되지 않아도 괜찮아요.';
+    ta.maxLength = 500;
+    ta.rows = 2;
+    ta.value = chatState.text || '';
+    /* 자동 높이 조절 */
+    ta.addEventListener('input', () => {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
+    });
+    fieldDiv.appendChild(ta);
+    const sendBtn = document.createElement('button');
+    sendBtn.className = 'chat-send';
+    sendBtn.setAttribute('aria-label', '전송');
+    sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+    inputWrap.appendChild(fieldDiv);
+    inputWrap.appendChild(sendBtn);
+
+    feed.appendChild(exRow);
+    feed.appendChild(inputWrap);
+    inputWrap.scrollIntoView({ behavior:'smooth', block:'end' });
+    if (!restored) setTimeout(() => ta.focus(), 400);
+
+    sendBtn.addEventListener('click', () => submitText(feed, ta, exRow, inputWrap));
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); submitText(feed, ta, exRow, inputWrap); }
+    });
+  };
+
+  if (restored){
+    const { wrap } = makeBubble('bot', esc(prompt).replace(/\n/g,'<br>'));
+    feed.appendChild(wrap);
+    doRender();
+  } else {
+    typingThenText(feed, prompt).then(doRender);
+  }
+}
+
+function submitText(feed, ta, exRow, inputWrap){
+  const text = ta.value.trim();
+  if (!text){ ta.focus(); return; }
+  chatState.text = text;
+  /* 입력창 제거 */
+  exRow.remove(); inputWrap.remove();
+  /* 사용자 말풍선 */
+  const { wrap } = makeBubble('user', esc(text));
+  appendMsg(feed, wrap);
+  /* 위기어 체크 */
+  const r = pickAdvice(text);
+  chatState.result = r;
+  if (r.urgent){
+    chatState.step = 'crisis';
+    typingThenText(feed, r.reflect, 'bubble--urgent').then(() => showCrisisResult(feed));
+    return;
+  }
+  chatState.step = 2;
+  /* 공감 + 2차 질문 */
+  typingThenText(feed, r.reflect).then(() => {
+    setTimeout(() => addStep2Choices(feed, false), 200);
+  });
+}
+
+/* ── 단계 2: 2차 선택지 (어떤 부분이 가장 힘든가요?) ── */
+function addStep2Choices(feed, restored){
+  const r = chatState.result;
+  /* 카테고리별 2차 질문 선택지 */
+  const Q2_MAP = {
+    study:    ['집중이 잘 안 돼요','성적이 오르지 않아요','압박감이 너무 커요'],
+    friend:   ['오해가 생긴 것 같아요','무리에서 소외된 느낌이에요','어떻게 말을 꺼낼지 모르겠어요'],
+    family:   ['잔소리·기대가 너무 힘들어요','집안 분위기가 무거워요','혼자 있을 공간이 없어요'],
+    career:   ['무엇을 해야 할지 모르겠어요','주변의 기대가 부담돼요','시간이 없어서 찾아볼 수가 없어요'],
+    anxiety:  ['발표나 시험이 두려워요','잠을 잘 못 자겠어요','몸이 자꾸 긴장해요'],
+    depress:  ['아무것도 하기 싫어요','즐거운 게 없어요','이유를 모르겠어요'],
+    selfesteem:['외모가 신경 쓰여요','남들과 비교되어요','스스로가 부족하게 느껴져요'],
+    bullying: ['직접 맞거나 협박받았어요','온라인에서 괴롭힘을 당했어요','증거를 어떻게 남겨야 할지 모르겠어요'],
+    anger:    ['화가 자꾸 치밀어 올라요','후회할 행동을 할까봐 걱정돼요','이유 없이 짜증이 나요'],
+    sleep:    ['밤새 잠을 못 자요','낮에 너무 졸려요','몸이 자꾸 아파요'],
+    lonely:   ['말할 사람이 없어요','이해받지 못하는 느낌이에요','혼자 있는 시간이 너무 길어요'],
+    phone:    ['게임·유튜브를 끊기 어려워요','폰을 보다가 새벽이 돼요','줄이고 싶은데 의지가 안 돼요'],
+    romance:  ['마음을 어떻게 전할지 모르겠어요','이별이 너무 힘들어요','감정이 너무 복잡해요'],
+    money:    ['주변에 말하기 부끄러워요','어디에 도움을 요청해야 할지 모르겠어요','가족 걱정이 함께 돼요'],
+  };
+  const choices = Q2_MAP[r.id] || ['더 이야기하고 싶어요','팁이 필요해요','선생님께 상담 신청할게요'];
+
+  const doRender = () => {
+    const q = document.createElement('div');
+    q.className = 'chat-choices';
+    choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-choice';
+      btn.textContent = c;
+      btn.addEventListener('click', () => {
+        q.querySelectorAll('.chat-choice').forEach(b => b.disabled = true);
+        btn.classList.add('is-picked');
+        chatState.focus = c;
+        const { wrap } = makeBubble('user', esc(c));
+        appendMsg(feed, wrap);
+        q.remove();
+        chatState.step = 3;
+        typingThenText(feed, '알겠어요. 도움이 될 만한 것들을 정리해 드릴게요 💚').then(() => {
+          setTimeout(() => showFinalResult(feed), 200);
+        });
+      });
+      q.appendChild(btn);
+    });
+
+    if (!restored){
+      typingThenText(feed, '어떤 부분이 가장 힘든가요?').then(() => {
+        feed.appendChild(q);
+        q.scrollIntoView({ behavior:'smooth', block:'end' });
+      });
+    } else {
+      const { wrap } = makeBubble('bot','어떤 부분이 가장 힘든가요?');
+      feed.appendChild(wrap);
+      feed.appendChild(q);
+    }
+  };
+  doRender();
+}
+
+/* ── 단계 3: 최종 결과 ── */
+function showFinalResult(feed){
+  const r = chatState.result;
+  /* 팁 카드들 */
+  r.tips.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'card tip';
+    card.innerHTML = `<span class="tip__no" aria-hidden="true">${i+1}</span>
+      <span class="tip__text">${esc(t)}</span>`;
+    feed.appendChild(card);
+    card.scrollIntoView({ behavior:'smooth', block:'end' });
+  });
+  /* 액션 버튼 */
+  const actions = document.createElement('div');
+  actions.className = 'chat__actions';
+  actions.innerHTML = `
+    <a class="btn btn--primary btn--block" href="#/booking" data-spark>위클래스 상담 신청하기</a>
+    <a class="btn btn--ghost btn--block" href="#/calendar">오늘 감정 기록하기</a>
+    <button class="btn btn--ghost btn--block" id="again">처음부터 다시 이야기하기</button>
+  `;
+  feed.appendChild(actions);
+  /* 안내 문구 */
+  const disc = document.createElement('p');
+  disc.className = 'disclaimer';
+  disc.textContent = '토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요. 더 이야기하고 싶다면 위클래스 상담을 신청해 보세요.';
+  feed.appendChild(disc);
+  actions.scrollIntoView({ behavior:'smooth', block:'end' });
+
+  actions.querySelector('#again').addEventListener('click', () => {
+    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    rerender(feed.parentElement, renderChat);
+  });
+}
+
+/* ── 위기 결과 ── */
+function showCrisisResult(feed){
+  const r = chatState.result;
+  const card = document.createElement('div');
+  card.className = 'card tip tip--urgent';
+  card.innerHTML = `<span class="tip__no" aria-hidden="true">!</span>
+    <span class="tip__text">${esc(r.advice)}</span>`;
+  feed.appendChild(card);
+  r.tips.forEach((t, i) => {
+    const c = document.createElement('div');
+    c.className = 'card tip tip--urgent';
+    c.innerHTML = `<span class="tip__no" aria-hidden="true">${i+1}</span>
+      <span class="tip__text">${esc(t)}</span>`;
+    feed.appendChild(c);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'chat__actions';
+  actions.innerHTML = `
+    <a class="btn btn--primary btn--block" href="#/booking" data-spark>지금 위클래스 상담 신청하기</a>
+    <button class="btn btn--ghost btn--block" id="again">처음부터 다시 이야기하기</button>
+  `;
+  feed.appendChild(actions);
+  const disc = document.createElement('p');
+  disc.className = 'disclaimer';
+  disc.innerHTML = '지금 많이 힘들다면 혼자 견디지 마세요. 자살예방 상담전화 <b><a href="tel:109">109</a></b>, 청소년 상담전화 <b><a href="tel:1388">1388</a></b>은 24시간 열려 있어요.';
+  feed.appendChild(disc);
+  feed.scrollIntoView({ behavior:'smooth', block:'end' });
+
+  actions.querySelector('#again').addEventListener('click', () => {
+    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    rerender(feed.parentElement, renderChat);
   });
 }
 function emptyBookForm(){ return { grade:'', classNo:'', name:'', topics:[], message:'' }; }
