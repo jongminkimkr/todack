@@ -503,6 +503,38 @@ a{color:inherit; text-decoration:none}
   <a href="#/calendar" data-tab="calendar"><span class="ico">📅</span>감정달력</a>
 </nav>
 
+<script id="boot-guard">
+/* 부팅 감시자.
+   iOS에는 열어 볼 콘솔이 없어서, 스크립트가 죽으면 화면만 하얗게 남는다.
+   그 상황을 기기에서 바로 읽을 수 있도록 오류를 화면에 찍는다.
+   아래 앱 스크립트보다 먼저 실행되어야 하므로 ES5 문법만 쓴다. */
+(function () {
+  var lastError = null;
+  function show(msg) {
+    var v = document.getElementById('view');
+    if (!v || v.innerHTML.replace(/\s/g, '') !== '') return;   // 이미 그려졌으면 건드리지 않는다
+    v.innerHTML =
+      '<div style="margin:16px 0;padding:16px 18px;border:1px solid #EFC9BE;' +
+      'background:#FCEEEA;border-radius:16px;color:#C0553F;font-size:13.5px;line-height:1.6">' +
+      '<b>화면을 그리지 못했어요</b>' +
+      '<p style="margin:8px 0 0;font-size:11.5px;word-break:break-all;white-space:pre-wrap;opacity:.9">' +
+      String(msg).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>' +
+      '<p style="margin:10px 0 0;font-size:11.5px;opacity:.85">' +
+      '이 내용을 알려 주시면 원인을 찾을 수 있어요.</p></div>';
+  }
+  window.onerror = function (message, source, line, col) {
+    lastError = message + '\n' + String(source || '').split('/').pop() + ':' + line + ':' + col;
+    show(lastError);
+    return false;
+  };
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      show(lastError || '스크립트가 실행되지 않았습니다. 이 브라우저가 앱의 기능을 지원하지 않을 수 있어요.');
+    }, 400);
+  });
+})();
+</script>
+
 <script>
 'use strict';
 /* == DATA: 상수 == */
@@ -1573,7 +1605,19 @@ function router(){
      열어둔 채 뒤로가기를 누르면 화면만 바뀌고 시트가 남아 상태가 어긋난다. */
   document.querySelectorAll('.sheet, .sheet-dim').forEach(n => n.remove());
   root.innerHTML = '';
-  ROUTES[key](root);
+  try {
+    ROUTES[key](root);
+  } catch (err) {
+    /* router가 #view를 이미 비웠기 때문에, 여기서 던지면 화면이 통째로 하얘진다 */
+    console.error('화면 렌더 실패', err);
+    root.innerHTML =
+      '<div class="card" style="margin-top:16px;border-color:#EFC9BE;' +
+      'background:var(--danger-bg);color:var(--danger)">' +
+      '<b>화면을 그리지 못했어요</b>' +
+      '<p style="margin-top:6px;font-size:12px;word-break:break-all">' +
+      esc(String((err && err.message) || err)) + '</p></div>';
+    return;
+  }
   try { fx.enhance(root); } catch (err) { console.warn('fx 실패', err); }
   document.querySelectorAll('.tabbar a').forEach(a => {
     const on = a.dataset.tab === key;
