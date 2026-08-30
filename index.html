@@ -372,6 +372,10 @@ const MOODS = [
 ];
 const MOOD_BY_KEY = Object.fromEntries(MOODS.map(m => [m.key, m]));
 
+const SLOTS = ['12:40 점심시간', '15:30 방과후', '16:30 방과후'];
+const TOPICS = ['학업·성적','친구 관계','가족','진로·미래','불안·긴장','우울·무기력','기타'];
+const WEEK_KO = ['일','월','화','수','목','금','토'];
+
 const CRISIS_WORDS = ['자해','자살','죽고 싶','죽고싶','죽어버','사라지고 싶','사라지고싶',
                       '없어지고 싶','없어지고싶','살기 싫','살기싫','뛰어내리'];
 
@@ -527,6 +531,23 @@ function pickAdvice(text){
     if (score > bestScore){ bestScore = score; best = rule; }
   }
   return best || DEFAULT_RULE;
+}
+
+/* 내일부터 days일 안의 평일만 반환한다 (당일 신청 불가) */
+function availableDates(from = new Date(), days = 14){
+  const out = [];
+  for (let i = 1; i <= days; i++){
+    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    out.push(ymd(d));
+  }
+  return out;
+}
+
+function formatKDate(s){
+  const d = parseYmd(s);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK_KO[d.getDay()]})`;
 }
 /* == FX == */
 const fx = {};
@@ -959,6 +980,19 @@ function selfTest(){
      pickAdvice('성적 때문에 그냥 죽고 싶어요').id, 'crisis');
   ok('위기 응답은 상담 연결 강제', pickAdvice('자해하고 싶어요').urgent, true);
   ok('일반 응답은 긴급 아님', pickAdvice('공부가 힘들어요').urgent, undefined);
+
+  // --- availableDates (2026-08-30은 일요일)
+  const D = availableDates(new Date(2026, 7, 30), 14);
+  ok('평일 10일만 반환', D.length, 10);
+  ok('당일은 제외하고 다음날부터', D[0], '2026-08-31');
+  ok('마지막 날짜', D[D.length - 1], '2026-09-11');
+  ok('주말이 하나도 없다',
+     D.filter(s => [0,6].includes(parseYmd(s).getDay())).length, 0);
+  ok('당일 미포함', D.includes('2026-08-30'), false);
+
+  // --- formatKDate
+  ok('한국식 날짜 표기', formatKDate('2026-09-02'), '9월 2일 (수)');
+  ok('한 자리 월 표기',  formatKDate('2026-01-05'), '1월 5일 (월)');
 
   console.log('\n' + log.join('\n') + '\n');
   const failed = log.filter(l => l.startsWith('❌')).length;
