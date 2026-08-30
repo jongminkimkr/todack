@@ -565,6 +565,26 @@ const Bookings = {
   cancel(id){ DB.write('bookings', this.all().filter(b => b.id !== id)); }
 };
 /* == LOGIC == */
+/* month는 1~12. 앞뒤를 null로 채워 7의 배수 길이로 맞춘다 */
+function buildMonth(year, month){
+  const lead  = new Date(year, month - 1, 1).getDay();
+  const total = new Date(year, month, 0).getDate();   // 다음 달 0일 = 이번 달 말일
+  const cells = new Array(lead).fill(null);
+  for (let d = 1; d <= total; d++) cells.push(ymd(new Date(year, month - 1, d)));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+function monthStats(moodMap, prefix){
+  const counts = Object.fromEntries(MOODS.map(m => [m.key, 0]));
+  let total = 0;
+  for (const [date, rec] of Object.entries(moodMap)){
+    if (!date.startsWith(prefix) || counts[rec.mood] === undefined) continue;
+    counts[rec.mood]++; total++;
+  }
+  return { counts, total };
+}
+
 function pickAdvice(text){
   const t = String(text || '');
   if (CRISIS_WORDS.some(w => t.includes(w))) return CRISIS_RULE;
@@ -1266,6 +1286,30 @@ function selfTest(){
   // --- formatKDate
   ok('한국식 날짜 표기', formatKDate('2026-09-02'), '9월 2일 (수)');
   ok('한 자리 월 표기',  formatKDate('2026-01-05'), '1월 5일 (월)');
+
+  // --- buildMonth (2026-08-01은 토요일 → 앞에 빈칸 6개)
+  const aug = buildMonth(2026, 8);
+  ok('8월 격자는 6주(42칸)', aug.length, 42);
+  ok('앞 빈칸 6개', aug.slice(0, 6), [null,null,null,null,null,null]);
+  ok('첫날 위치', aug[6], '2026-08-01');
+  ok('마지막 날 위치', aug[36], '2026-08-31');
+  ok('뒤는 빈칸으로 채움', aug[41], null);
+
+  // --- buildMonth 윤년 2월 (2024-02-01은 목요일 → 빈칸 4개, 29일)
+  const feb = buildMonth(2024, 2);
+  ok('윤년 2월은 5주(35칸)', feb.length, 35);
+  ok('윤년 2월 첫날', feb[4], '2024-02-01');
+  ok('윤년 2월 29일 존재', feb[32], '2024-02-29');
+
+  // --- monthStats
+  const sample = {
+    '2026-08-01':{mood:'good'}, '2026-08-02':{mood:'good'},
+    '2026-08-03':{mood:'hard'}, '2026-07-30':{mood:'great'},
+  };
+  ok('해당 월만 집계', monthStats(sample, '2026-08').total, 3);
+  ok('감정별 개수',   monthStats(sample, '2026-08').counts.good, 2);
+  ok('다른 달은 제외', monthStats(sample, '2026-08').counts.great, 0);
+  ok('빈 저장소',     monthStats({}, '2026-08').total, 0);
 
   console.log('\n' + log.join('\n') + '\n');
   const failed = log.filter(l => l.startsWith('❌')).length;
