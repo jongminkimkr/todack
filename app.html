@@ -1277,13 +1277,43 @@ function monthStats(moodMap, prefix){
   return { counts, total };
 }
 
+/* 검색용 텍스트 정규화: 공백·특수문자 제거, 자주 쓰는 구어 → 키워드로 치환 */
+function normalizeText(raw){
+  const t = String(raw || '').replace(/\s+/g, '');   // 공백 전체 제거
+  // 구어 → 표준 키워드 치환 (pickAdvice 검색에만 사용, 화면 출력 안 함)
+  const SYNONYMS = [
+    [/소화가?안?돼?요?|소화불량|배가아파|배아파|복통|속이안좋/g,   '속이울렁몸이안'],
+    [/스트레스(받|쌓|터)/g,                                        '답답울컥지치'],
+    [/힘들어요?|너무힘들|버티기힘|지쳐요?$/g,                      '지치무기력'],
+    [/기분이?안좋|기분이?나빠|기분이?별로|기분최악/g,               '우울무기력'],
+    [/잠(을)?못자|잠이안와|잠이안오|잠못들|잠못이루/g,              '잠못자수면불면'],
+    [/밥을?못먹|밥이안넘|입맛이?없|식욕이?없|먹기싫/g,             '밥을못식욕'],
+    [/머리(가)?아파|두통이|머리가깨질/g,                           '두통머리아프'],
+    [/숨이막혀|숨막히|숨쉬기힘|호흡이?곤란/g,                      '숨이답답숨막혀'],
+    [/심장이두근|가슴이두근|두근두근|가슴이떨려/g,                  '두근심장이두근'],
+    [/토할것같|구역질|메스꺼워|울렁거려/g,                          '메스꺼워속이울렁'],
+    [/어지러워|어지럼증|머리가빙빙/g,                               '어지러워'],
+    [/떨려요?|손발이떨|손이떨려|몸이떨려/g,                        '떨려손발이떨려'],
+    [/눈물이나|울고싶|울었어|눈물이펑펑/g,                          '눈물슬프'],
+    [/아무것도하기싫|아무것도못|아무것도안되|의욕이없/g,            '아무것도의욕무기력'],
+    [/친구(랑|하고|한테)?(싸웠|다퉜|멀어|절교|오해)/g,             '친구싸웠오해멀어'],
+    [/공부(가|를|하기)?(싫|힘들|안돼|못하)/g,                       '공부하기싫집중'],
+    [/시험(이|이)?무서|시험공포|시험(이)?다가/g,                    '시험불안걱정'],
+    [/외로워요?|혼자인것같|아무도없|말할사람이없/g,                  '외로혼자뿐말할사람'],
+    [/화가나|짜증나|열받|빡쳐|욱해/g,                              '화가짜증열받'],
+  ];
+  let out = t;
+  SYNONYMS.forEach(([re, rep]) => { out = out.replace(re, rep); });
+  return out;
+}
+
 function pickAdvice(text){
   const t = String(text || '');
-  const flat = t.replace(/\s/g, '');
-  if (CRISIS_WORDS.some(w => flat.includes(w))) return CRISIS_RULE;
+  const flat = normalizeText(t);
+  if (CRISIS_WORDS.some(w => flat.includes(w) || t.replace(/\s/g,'').includes(w))) return CRISIS_RULE;
   let best = null, bestScore = 0;
   for (const rule of RULES){
-    const score = rule.keywords.reduce((n, k) => n + (t.includes(k) ? 1 : 0), 0);
+    const score = rule.keywords.reduce((n, k) => n + (flat.includes(k) ? 1 : 0), 0);
     if (score > bestScore){ bestScore = score; best = rule; }
   }
   return best || DEFAULT_RULE;
