@@ -1907,7 +1907,7 @@ function renderBookingDone(root){
     <div class="card card--star done">
       <div class="done__check" aria-hidden="true">🍀</div>
       <h2 style="font-size:20px">상담 신청이 접수됐어요</h2>
-      <p class="done__id" id="doneId">${' '.repeat(12)}</p>
+      <p class="done__id" id="doneId">${' '.repeat(12)}</p>
       <p class="muted">신청번호</p>
       <div class="done__meta">${formatKDate(b.date)} · ${esc(b.slot)}</div>
     </div>
