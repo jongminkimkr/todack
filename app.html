@@ -385,7 +385,7 @@ a{color:inherit; text-decoration:none}
 .chat-choice.is-picked{background:var(--green-500); color:#fff; border-color:var(--green-500)}
 /* 감정 선택 — 가로 5칸 */
 .mood-choices{
-  display:grid; grid-template-columns:repeat(5,1fr); gap:6px;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
   padding-left:43px;
   width:100%; box-sizing:border-box;
 }
@@ -1379,11 +1379,20 @@ function restoreHistory(feed){
 }
 
 /* ── 단계 0: 인사 + 감정 선택 ── */
+/* 채팅 전용 감정 목록 (달력 MOODS와 별개, score는 addStep1Input 분기에 활용) */
+const CHAT_MOODS = [
+  { key:'great', emoji:'😊', label:'좋음',      score:5 },
+  { key:'good',  emoji:'🙂', label:'괜찮음',    score:4 },
+  { key:'okay',  emoji:'😐', label:'보통',      score:3 },
+  { key:'hard',  emoji:'😟', label:'힘듦',      score:2 },
+  { key:'tough', emoji:'😢', label:'매우 힘듦', score:1 },
+  { key:'angry', emoji:'😤', label:'짜증남',    score:2 },
+];
 function startStep0(feed){
   typingThenText(feed, '안녕하세요 😊\n지금 기분이 어떤지 먼저 알려줄 수 있어요?').then(() => {
     const row = document.createElement('div');
     row.className = 'mood-choices';
-    MOODS.forEach(m => {
+    CHAT_MOODS.forEach(m => {
       const btn = document.createElement('button');
       btn.className = 'mood-choice';
       btn.innerHTML = `<span class="e">${m.emoji}</span>${m.label}`;
@@ -1409,9 +1418,11 @@ function startStep0(feed){
 /* ── 단계 1: 무슨 일인지 텍스트 입력 ── */
 function addStep1Input(feed, restored){
   const moodKey = chatState.mood;
-  const m = MOOD_BY_KEY[moodKey];
+  const m = CHAT_MOODS.find(x => x.key === moodKey);
   let prompt;
-  if (!m || m.score >= 4)
+  if (moodKey === 'angry')
+    prompt = '짜증이 많이 쌓였군요 😤\n어떤 일이 있었는지 이야기해 줄 수 있어요?';
+  else if (!m || m.score >= 4)
     prompt = '좋은 소식이네요 😊\n그래도 마음에 걸리는 일이 있다면 편하게 적어 줘요.';
   else if (m.score === 3)
     prompt = '그렇군요. 무슨 일이 있었는지 편하게 이야기해 줘요.';
