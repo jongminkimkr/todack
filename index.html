@@ -103,7 +103,158 @@ a{color:inherit; text-decoration:none}
 .tabbar a.is-active{color:var(--green-700)}
 .tabbar a.is-active .ico{transform:translateY(-2px) scale(1.12)}
 /* == COMPONENTS == */
-/* (Task 5에서 채운다) */
+/* --- 카드 --- */
+.card{
+  background:var(--white); border:1px solid var(--line); border-radius:var(--radius-lg);
+  padding:18px; box-shadow:var(--shadow-sm);
+  transition:box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.card--tap{cursor:pointer; -webkit-tap-highlight-color:transparent}
+.card--tap:hover{box-shadow:var(--shadow)}
+.card--tap:active{transform:scale(.985)}
+
+/* --- SpotlightCard 이식 --- */
+.card--spot{position:relative; overflow:hidden}
+.card--spot::before{
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:0;
+  background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgba(47,163,107,.16), transparent 65%);
+  transition:opacity var(--dur-base) var(--ease-out);
+}
+.card--spot:hover::before{opacity:1}
+
+/* --- StarBorder 이식 (완료 화면 전용) --- */
+@property --ang{ syntax:'<angle>'; initial-value:0deg; inherits:false }
+@keyframes star-spin{ to{ --ang:360deg } }
+.card--star{position:relative}
+.card--star::before{
+  content:''; position:absolute; inset:-1.5px; border-radius:inherit; padding:1.5px;
+  background:conic-gradient(from var(--ang,0deg), transparent 0 58%,
+             var(--green-300) 74%, var(--green-500) 83%, transparent 93%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  animation:star-spin 3.4s linear infinite; pointer-events:none;
+}
+
+/* --- GlareHover 이식 --- */
+.glare{position:relative; overflow:hidden}
+.glare::after{
+  content:''; position:absolute; top:-60%; left:0; width:38%; height:220%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+  transform:skewX(-20deg) translateX(-160%); opacity:0; pointer-events:none;
+}
+.glare:hover::after{
+  opacity:1; transform:skewX(-20deg) translateX(420%);
+  transition:transform .68s var(--ease-out), opacity .18s var(--ease-out);
+}
+
+/* --- ShinyText / GradientText 이식 --- */
+.shiny{
+  background:linear-gradient(100deg,var(--green-700) 32%,var(--green-300) 48%,var(--green-700) 64%);
+  background-size:220% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:shine 4.6s linear infinite;
+}
+
+/* --- Aurora 이식 (CSS 블롭) --- */
+.aurora{position:absolute; inset:-25%; z-index:0; pointer-events:none;
+        filter:blur(58px) saturate(1.15); opacity:.5; will-change:transform}
+.aurora__blob{position:absolute; display:block; width:62%; aspect-ratio:1; border-radius:50%}
+.aurora__blob:nth-child(1){background:radial-gradient(circle,#7FD1A6 0%,transparent 70%); top:-8%;  left:-6%;  animation:drift-a 18s ease-in-out infinite}
+.aurora__blob:nth-child(2){background:radial-gradient(circle,#2FA36B 0%,transparent 70%); top:6%;   right:-12%; animation:drift-b 23s ease-in-out infinite}
+.aurora__blob:nth-child(3){background:radial-gradient(circle,#C8E6D5 0%,transparent 70%); bottom:-18%; left:18%; animation:drift-c 29s ease-in-out infinite}
+
+/* --- 버튼 --- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:13px 20px; border-radius:var(--radius-pill);
+  font-weight:700; font-size:15px; letter-spacing:-.01em;
+  transition:transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-base) var(--ease-out),
+             background-color var(--dur-base) var(--ease-out);
+}
+.btn:active{transform:scale(.96)}
+.btn--primary{background:var(--green-500); color:#fff; box-shadow:0 6px 18px rgba(47,163,107,.28)}
+.btn--primary:hover{background:var(--green-600); box-shadow:0 8px 24px rgba(47,163,107,.34)}
+.btn--primary:disabled{background:var(--green-200); color:var(--ink-muted); box-shadow:none; cursor:not-allowed; transform:none}
+.btn--ghost{background:var(--white); color:var(--green-700); border:1.5px solid var(--line)}
+.btn--ghost:hover{border-color:var(--green-300); background:var(--green-50)}
+.btn--block{width:100%}
+
+/* --- 칩 (날짜/시간/감정/주제 선택) --- */
+.chip{
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  padding:9px 14px; border-radius:var(--radius-pill);
+  background:var(--white); border:1.5px solid var(--line);
+  font-size:14px; font-weight:600; color:var(--ink-muted);
+  transition:transform var(--dur-base) var(--ease-spring),
+             border-color var(--dur-fast) var(--ease-out),
+             background-color var(--dur-fast) var(--ease-out),
+             color var(--dur-fast) var(--ease-out);
+}
+.chip:hover{border-color:var(--green-300); color:var(--green-700)}
+.chip.is-on{background:var(--green-500); border-color:var(--green-500); color:#fff}
+.chip:disabled{opacity:.4; cursor:not-allowed; text-decoration:line-through}
+.chip-row{display:flex; flex-wrap:wrap; gap:8px}
+
+/* --- 입력 필드 (BorderGlow 이식) --- */
+.field{
+  background:var(--white); border:1.5px solid var(--line); border-radius:var(--radius);
+  transition:border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.field:focus-within{
+  border-color:var(--green-300);
+  box-shadow:0 0 0 4px rgba(47,163,107,.13), 0 8px 22px rgba(47,163,107,.10);
+}
+.field textarea, .field input{
+  width:100%; border:0; background:transparent; padding:13px 15px;
+  font:inherit; color:inherit; resize:none; outline:none;
+}
+.field textarea::placeholder, .field input::placeholder{color:#9DB3A8}
+.label{display:block; font-size:13px; font-weight:700; color:var(--ink-muted); margin:0 0 7px 3px}
+
+/* --- Stepper 이식 --- */
+.stepper{display:flex; align-items:center; gap:6px; margin:2px 0 20px}
+.stepper__dot{
+  flex:1; height:4px; border-radius:2px; background:var(--green-200);
+  position:relative; overflow:hidden;
+}
+.stepper__dot::after{
+  content:''; position:absolute; inset:0; background:var(--green-500);
+  transform:scaleX(0); transform-origin:left;
+  transition:transform var(--dur-slow) var(--ease-out);
+}
+.stepper__dot.is-done::after{transform:scaleX(1)}
+.stepper__label{font-size:12px; font-weight:700; color:var(--green-700); flex:none; margin-left:4px}
+
+/* --- 바텀 시트 (StaggeredMenu 이식) --- */
+.sheet-dim{
+  position:fixed; inset:0; z-index:40; background:rgba(22,38,30,.32);
+  backdrop-filter:blur(2px); animation:fade-in var(--dur-base) var(--ease-out) both;
+}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.sheet{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:var(--app-w); z-index:41;
+  background:var(--white); border-radius:22px 22px 0 0;
+  padding:10px 20px calc(24px + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow-lg);
+  animation:sheet-up var(--dur-slow) var(--ease-out) both;
+}
+.sheet__grip{width:38px; height:4px; border-radius:2px; background:var(--green-200); margin:2px auto 16px}
+
+/* --- 텍스트 이펙트용 --- */
+.fx-word{display:inline-block; will-change:transform,filter}
+.is-typing::after{
+  content:''; display:inline-block; width:2px; height:1em; margin-left:2px; vertical-align:-.12em;
+  background:var(--green-500); animation:caret 1s steps(1) infinite;
+}
+.spark-canvas{position:fixed; inset:0; pointer-events:none; z-index:55}
+
+/* --- 기타 --- */
+.muted{color:var(--ink-muted); font-size:13px}
+.section-title{font-size:15px; font-weight:800; margin:26px 0 10px}
+.empty{
+  text-align:center; padding:36px 20px; color:var(--ink-muted); font-size:14px;
+  background:var(--white); border:1px dashed var(--line); border-radius:var(--radius-lg);
+}
 /* == HOME == */
 /* == CHAT == */
 /* == BOOKING == */
