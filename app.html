@@ -1609,7 +1609,7 @@ function renderHome(root){
         localStorage.removeItem('todak.moods');
         localStorage.removeItem('todak.bookings');
       } catch { /* 저장소가 막혀 있으면 지울 것도 없다 */ }
-      chatState = { step:0, mood:null, text:'', focus:null, result:null };
+      chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
       bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
       rerender(root, renderHome);
     });
@@ -1628,6 +1628,7 @@ let chatState = {
   step: 0,        // 0~3, 'crisis'
   mood: null,     // MOODS key
   text: '',       // 사용자 입력 텍스트
+  duration: null, // 얼마나 됐나요? 선택값
   focus: null,    // 2차 선택지에서 고른 항목
   result: null,   // pickAdvice 결과
 };
@@ -1722,7 +1723,6 @@ function renderChat(root){
 /* 대화 히스토리 복원 (탭 재진입 시 이전 말풍선 재현) */
 function restoreHistory(feed){
   const s = chatState;
-  /* step 0 봇 인사 */
   const { wrap: w0 } = makeBubble('bot', '안녕하세요 😊<br>지금 기분이 어떤지 먼저 알려줄 수 있어요?');
   feed.appendChild(w0);
   if (s.step >= 1 && s.mood){
@@ -1737,13 +1737,24 @@ function restoreHistory(feed){
     if (s.step === 'crisis' || (s.result && s.result.urgent)){
       showCrisisResult(feed); return;
     }
-    const greetLine = s.result
-      ? s.result.reflect
-      : '이야기해줘서 고마워요. 조금 더 알아볼게요.';
-    const { wrap: wb2 } = makeBubble('bot', esc(greetLine));
-    feed.appendChild(wb2);
-    if (s.step >= 2){
+    if (s.result){
+      const { wrap: wr } = makeBubble('bot', esc(s.result.reflect));
+      feed.appendChild(wr);
+      const { wrap: wa } = makeBubble('bot', esc(s.result.advice));
+      feed.appendChild(wa);
+    }
+    /* duration 복원 */
+    if (s.duration){
+      const durOpt = DURATION_OPTS.find(o => o.value === s.duration);
+      if (durOpt){
+        const { wrap: wd } = makeBubble('bot', '이런 마음이 든 게 언제부터인가요?');
+        feed.appendChild(wd);
+        const { wrap: wdu } = makeBubble('user', esc(durOpt.label));
+        feed.appendChild(wdu);
+      }
       addStep2Choices(feed, true);
+    } else {
+      addDurationChoices(feed, true);
     }
   }
   if (s.step === 3 && s.result){
@@ -1864,12 +1875,9 @@ function submitText(feed, ta, exRow, inputWrap){
   const text = ta.value.trim();
   if (!text){ ta.focus(); return; }
   chatState.text = text;
-  /* 입력창 제거 */
   exRow.remove(); inputWrap.remove();
-  /* 사용자 말풍선 */
   const { wrap } = makeBubble('user', esc(text));
   appendMsg(feed, wrap);
-  /* 위기어 체크 */
   const r = pickAdvice(text);
   chatState.result = r;
   if (r.urgent){
@@ -1878,10 +1886,63 @@ function submitText(feed, ta, exRow, inputWrap){
     return;
   }
   chatState.step = 2;
-  /* 공감 + 2차 질문 */
+  /* B: reflect → advice 순차 출력 → duration 질문(step 2a) */
   typingThenText(feed, r.reflect).then(() => {
-    setTimeout(() => addStep2Choices(feed, false), 200);
+    setTimeout(() => {
+      typingThenText(feed, r.advice).then(() => {
+        setTimeout(() => addDurationChoices(feed, false), 300);
+      });
+    }, 200);
   });
+}
+
+/* ── 단계 2a: 얼마나 됐나요? ── */
+const DURATION_OPTS = [
+  { label:'오늘 처음이에요',  value:'today' },
+  { label:'며칠 됐어요',      value:'days'  },
+  { label:'몇 주째예요',      value:'weeks' },
+  { label:'오래됐어요',       value:'long'  },
+];
+function addDurationChoices(feed, restored){
+  const doRender = () => {
+    const q = document.createElement('div');
+    q.className = 'chat-choices';
+    DURATION_OPTS.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-choice';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', () => {
+        q.querySelectorAll('.chat-choice').forEach(b => b.disabled = true);
+        btn.classList.add('is-picked');
+        chatState.duration = opt.value;
+        const { wrap } = makeBubble('user', esc(opt.label));
+        appendMsg(feed, wrap);
+        q.remove();
+        /* duration에 따라 후속 공감 한 마디 추가 */
+        const followUp = {
+          today: '오늘 처음이라면 아직 많이 쌓이지 않았을 수 있어요. 지금 이야기한 게 잘 됐어요.',
+          days:  '며칠 동안 혼자 안고 있었군요. 이야기해줘서 고마워요.',
+          weeks: '몇 주째 버텨온 거네요. 그동안 많이 지쳤겠어요.',
+          long:  '꽤 오래된 고민이군요. 그 무게가 얼마나 무거웠을지 느껴져요.',
+        }[opt.value] || '이야기해줘서 고마워요.';
+        typingThenText(feed, followUp).then(() => {
+          setTimeout(() => addStep2Choices(feed, false), 300);
+        });
+      });
+      q.appendChild(btn);
+    });
+    if (!restored){
+      typingThenText(feed, '이런 마음이 든 게 언제부터인가요?').then(() => {
+        feed.appendChild(q);
+        q.scrollIntoView({ behavior:'smooth', block:'end' });
+      });
+    } else {
+      const { wrap } = makeBubble('bot', '이런 마음이 든 게 언제부터인가요?');
+      feed.appendChild(wrap);
+      feed.appendChild(q);
+    }
+  };
+  doRender();
 }
 
 /* ── 단계 2: 2차 선택지 (어떤 부분이 가장 힘든가요?) ── */
@@ -1986,15 +2047,35 @@ function addStep2Choices(feed, restored){
 /* ── 단계 3: 최종 결과 ── */
 function showFinalResult(feed){
   const r = chatState.result;
-  /* 팁 카드들 */
-  r.tips.forEach((t, i) => {
+  const focus = chatState.focus || '';
+  const duration = chatState.duration;
+
+  /* C: focus 키워드와 매칭되는 팁을 앞으로 정렬 */
+  const sorted = [...r.tips].sort((a, b) => {
+    const aMatch = focus && a.includes(focus.replace(/[^가-힣a-zA-Z]/g,'').slice(0,4)) ? 1 : 0;
+    const bMatch = focus && b.includes(focus.replace(/[^가-힣a-zA-Z]/g,'').slice(0,4)) ? 1 : 0;
+    return bMatch - aMatch;
+  });
+
+  const ICONS = ['💡','🌱','📝'];
+  sorted.forEach((t, i) => {
     const card = document.createElement('div');
     card.className = 'card tip';
-    card.innerHTML = `<span class="tip__no" aria-hidden="true">${i+1}</span>
+    card.innerHTML = `<span class="tip__no" aria-hidden="true">${ICONS[i] || (i+1)}</span>
       <span class="tip__text">${esc(t)}</span>`;
     feed.appendChild(card);
     card.scrollIntoView({ behavior:'smooth', block:'end' });
   });
+
+  /* duration이 weeks/long이면 전문 상담 권유 카드 추가 */
+  if (duration === 'weeks' || duration === 'long'){
+    const extraCard = document.createElement('div');
+    extraCard.className = 'card tip';
+    extraCard.innerHTML = `<span class="tip__no" aria-hidden="true">🤝</span>
+      <span class="tip__text">이미 몇 주째 또는 오래 힘들었다면 위클래스 선생님과 직접 이야기 나눠 보는 게 가장 도움이 돼요. 상담 신청은 아래 버튼으로 할 수 있어요.</span>`;
+    feed.appendChild(extraCard);
+  }
+
   /* 액션 버튼 */
   const actions = document.createElement('div');
   actions.className = 'chat__actions';
@@ -2004,7 +2085,6 @@ function showFinalResult(feed){
     <button class="btn btn--ghost btn--block" id="again">처음부터 다시 이야기하기</button>
   `;
   feed.appendChild(actions);
-  /* 안내 문구 */
   const disc = document.createElement('p');
   disc.className = 'disclaimer';
   disc.textContent = '토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요. 더 이야기하고 싶다면 위클래스 상담을 신청해 보세요.';
@@ -2012,7 +2092,7 @@ function showFinalResult(feed){
   actions.scrollIntoView({ behavior:'smooth', block:'end' });
 
   actions.querySelector('#again').addEventListener('click', () => {
-    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
     rerender(feed.parentElement, renderChat);
   });
 }
@@ -2046,7 +2126,7 @@ function showCrisisResult(feed){
   feed.scrollIntoView({ behavior:'smooth', block:'end' });
 
   actions.querySelector('#again').addEventListener('click', () => {
-    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
     rerender(feed.parentElement, renderChat);
   });
 }

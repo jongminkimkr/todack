@@ -1628,7 +1628,7 @@ function renderHome(root){
         localStorage.removeItem('todak.moods');
         localStorage.removeItem('todak.bookings');
       } catch { /* 저장소가 막혀 있으면 지울 것도 없다 */ }
-      chatState = { step:0, mood:null, text:'', focus:null, result:null };
+      chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
       bookState = { step:1, date:null, slot:null, done:null, form:emptyBookForm() };
       rerender(root, renderHome);
     });
@@ -1641,7 +1641,7 @@ function renderHome(root){
    위기어 → crisis 즉시
    ============================================= */
 let chatState = {
-  step: 0, mood: null, text: '', focus: null, result: null,
+  step: 0, mood: null, text: '', duration: null, focus: null, result: null,
 };
 
 const CHAT_EXAMPLES = [
@@ -1721,9 +1721,20 @@ function restoreHistory(feed){
   if (s.step >= 2 && s.text){
     const { wrap: wu } = makeBubble('user', esc(s.text)); feed.appendChild(wu);
     if (s.step === 'crisis' || (s.result && s.result.urgent)){ showCrisisResult(feed); return; }
-    const { wrap: wb2 } = makeBubble('bot', esc(s.result ? s.result.reflect : '이야기해줘서 고마워요.'));
-    feed.appendChild(wb2);
-    if (s.step >= 2) addStep2Choices(feed, true);
+    if (s.result){
+      const { wrap: wr } = makeBubble('bot', esc(s.result.reflect)); feed.appendChild(wr);
+      const { wrap: wa } = makeBubble('bot', esc(s.result.advice)); feed.appendChild(wa);
+    }
+    if (s.duration){
+      const durOpt = DURATION_OPTS.find(o => o.value === s.duration);
+      if (durOpt){
+        const { wrap: wd } = makeBubble('bot','이런 마음이 든 게 언제부터인가요?'); feed.appendChild(wd);
+        const { wrap: wdu } = makeBubble('user', esc(durOpt.label)); feed.appendChild(wdu);
+      }
+      addStep2Choices(feed, true);
+    } else {
+      addDurationChoices(feed, true);
+    }
   }
   if (s.step === 3 && s.result){
     if (s.focus){ const { wrap: wf } = makeBubble('user', esc(s.focus)); feed.appendChild(wf); }
@@ -1818,7 +1829,58 @@ function submitText(feed, ta, exRow, inputWrap){
     return;
   }
   chatState.step = 2;
-  typingThenText(feed, r.reflect).then(() => setTimeout(() => addStep2Choices(feed, false), 200));
+  typingThenText(feed, r.reflect).then(() => {
+    setTimeout(() => {
+      typingThenText(feed, r.advice).then(() => {
+        setTimeout(() => addDurationChoices(feed, false), 300);
+      });
+    }, 200);
+  });
+}
+
+const DURATION_OPTS = [
+  { label:'오늘 처음이에요',  value:'today' },
+  { label:'며칠 됐어요',      value:'days'  },
+  { label:'몇 주째예요',      value:'weeks' },
+  { label:'오래됐어요',       value:'long'  },
+];
+function addDurationChoices(feed, restored){
+  const doRender = () => {
+    const q = document.createElement('div');
+    q.className = 'chat-choices';
+    DURATION_OPTS.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-choice';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', () => {
+        q.querySelectorAll('.chat-choice').forEach(b => b.disabled = true);
+        btn.classList.add('is-picked');
+        chatState.duration = opt.value;
+        const { wrap } = makeBubble('user', esc(opt.label));
+        appendMsg(feed, wrap);
+        q.remove();
+        const followUp = {
+          today: '오늘 처음이라면 아직 많이 쌓이지 않았을 수 있어요. 지금 이야기한 게 잘 됐어요.',
+          days:  '며칠 동안 혼자 안고 있었군요. 이야기해줘서 고마워요.',
+          weeks: '몇 주째 버텨온 거네요. 그동안 많이 지쳤겠어요.',
+          long:  '꽤 오래된 고민이군요. 그 무게가 얼마나 무거웠을지 느껴져요.',
+        }[opt.value] || '이야기해줘서 고마워요.';
+        typingThenText(feed, followUp).then(() => {
+          setTimeout(() => addStep2Choices(feed, false), 300);
+        });
+      });
+      q.appendChild(btn);
+    });
+    if (!restored){
+      typingThenText(feed,'이런 마음이 든 게 언제부터인가요?').then(() => {
+        feed.appendChild(q); q.scrollIntoView({ behavior:'smooth', block:'end' });
+      });
+    } else {
+      const { wrap } = makeBubble('bot','이런 마음이 든 게 언제부터인가요?');
+      feed.appendChild(wrap); feed.appendChild(q);
+    }
+  };
+  doRender();
 }
 function addStep2Choices(feed, restored){
   const r = chatState.result;
@@ -1908,13 +1970,27 @@ function addStep2Choices(feed, restored){
 }
 function showFinalResult(feed){
   const r = chatState.result;
-  r.tips.forEach((t, i) => {
+  const focus = chatState.focus || '';
+  const duration = chatState.duration;
+  const sorted = [...r.tips].sort((a, b) => {
+    const aMatch = focus && a.includes(focus.replace(/[^가-힣a-zA-Z]/g,'').slice(0,4)) ? 1 : 0;
+    const bMatch = focus && b.includes(focus.replace(/[^가-힣a-zA-Z]/g,'').slice(0,4)) ? 1 : 0;
+    return bMatch - aMatch;
+  });
+  const ICONS = ['💡','🌱','📝'];
+  sorted.forEach((t, i) => {
     const card = document.createElement('div');
     card.className = 'card tip';
-    card.innerHTML = `<span class="tip__no" aria-hidden="true">${i+1}</span><span class="tip__text">${esc(t)}</span>`;
+    card.innerHTML = `<span class="tip__no" aria-hidden="true">${ICONS[i]||(i+1)}</span><span class="tip__text">${esc(t)}</span>`;
     feed.appendChild(card);
     card.scrollIntoView({ behavior:'smooth', block:'end' });
   });
+  if (duration === 'weeks' || duration === 'long'){
+    const extraCard = document.createElement('div');
+    extraCard.className = 'card tip';
+    extraCard.innerHTML = `<span class="tip__no" aria-hidden="true">🤝</span><span class="tip__text">이미 몇 주째 또는 오래 힘들었다면 위클래스 선생님과 직접 이야기 나눠 보는 게 가장 도움이 돼요.</span>`;
+    feed.appendChild(extraCard);
+  }
   const actions = document.createElement('div');
   actions.className = 'chat__actions';
   actions.innerHTML = `
@@ -1928,7 +2004,7 @@ function showFinalResult(feed){
   feed.appendChild(disc);
   actions.scrollIntoView({ behavior:'smooth', block:'end' });
   actions.querySelector('#again').addEventListener('click', () => {
-    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
     rerender(feed.parentElement, renderChat);
   });
 }
@@ -1956,7 +2032,7 @@ function showCrisisResult(feed){
   feed.appendChild(disc);
   feed.scrollIntoView({ behavior:'smooth', block:'end' });
   actions.querySelector('#again').addEventListener('click', () => {
-    chatState = { step:0, mood:null, text:'', focus:null, result:null };
+    chatState = { step:0, mood:null, text:'', duration:null, focus:null, result:null };
     rerender(feed.parentElement, renderChat);
   });
 }
