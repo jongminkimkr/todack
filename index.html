@@ -146,6 +146,14 @@ a{color:inherit; text-decoration:none}
 <script>
 'use strict';
 /* == DATA: 상수 == */
+const MOODS = [
+  { key:'great', emoji:'😊', label:'좋음',      score:5, color:'var(--mood-5)' },
+  { key:'good',  emoji:'🙂', label:'괜찮음',    score:4, color:'var(--mood-4)' },
+  { key:'okay',  emoji:'😐', label:'보통',      score:3, color:'var(--mood-3)' },
+  { key:'hard',  emoji:'😟', label:'힘듦',      score:2, color:'var(--mood-2)' },
+  { key:'tough', emoji:'😢', label:'매우 힘듦', score:1, color:'var(--mood-1)' },
+];
+const MOOD_BY_KEY = Object.fromEntries(MOODS.map(m => [m.key, m]));
 /* == UTIL == */
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c =>
@@ -157,6 +165,50 @@ function ymd(date){
 }
 function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 /* == STORE == */
+const DB = {
+  read(key, fallback){
+    try {
+      const raw = localStorage.getItem('todak.' + key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch { return fallback; }          // 사생활 보호 모드 / 손상된 JSON
+  },
+  write(key, value){
+    try { localStorage.setItem('todak.' + key, JSON.stringify(value)); return true; }
+    catch { return false; }               // 용량 초과 등
+  }
+};
+
+const Moods = {
+  all(){ return DB.read('moods', {}); },
+  get(date){ return this.all()[date] || null; },
+  set(date, mood, memo){
+    const map = this.all();
+    map[date] = { mood, memo: memo || '', savedAt: new Date().toISOString() };
+    DB.write('moods', map);
+    return map[date];
+  },
+  remove(date){ const map = this.all(); delete map[date]; DB.write('moods', map); }
+};
+
+function makeBookingId(seq, today = new Date()){
+  const y = String(today.getFullYear()).slice(2);
+  const m = String(today.getMonth() + 1).padStart(2,'0');
+  const d = String(today.getDate()).padStart(2,'0');
+  return `TD-${y}${m}${d}-${String(seq).padStart(2,'0')}`;
+}
+
+const Bookings = {
+  all(){ return DB.read('bookings', []); },
+  taken(){ return new Set(this.all().map(b => b.date + '|' + b.slot)); },
+  add(entry){
+    const list = this.all();
+    const record = { id: makeBookingId(list.length + 1), createdAt: new Date().toISOString(), ...entry };
+    list.push(record);
+    DB.write('bookings', list);
+    return record;
+  },
+  cancel(id){ DB.write('bookings', this.all().filter(b => b.id !== id)); }
+};
 /* == LOGIC == */
 /* == FX == */
 /* == VIEWS == */
@@ -182,6 +234,43 @@ function router(){
 window.addEventListener('hashchange', router);
 router();
 /* == SELFTEST == */
+function selfTest(){
+  const log = [];
+  const ok = (name, actual, expected) => {
+    const pass = JSON.stringify(actual) === JSON.stringify(expected);
+    log.push((pass ? '✅ PASS' : '❌ FAIL') + ' — ' + name +
+      (pass ? '' : `\n     got:  ${JSON.stringify(actual)}\n     want: ${JSON.stringify(expected)}`));
+  };
+
+  // --- ymd: 로컬 시간 기준이어야 한다 (toISOString은 UTC라 하루가 밀린다)
+  ok('ymd 한 자리 월/일 0패딩', ymd(new Date(2026, 0, 5)), '2026-01-05');
+  ok('ymd 자정 직후에도 날짜 유지', ymd(new Date(2026, 7, 30, 0, 10)), '2026-08-30');
+
+  // --- makeBookingId
+  ok('신청번호 형식', makeBookingId(1, new Date(2026, 7, 30)), 'TD-260830-01');
+  ok('신청번호 2자리 패딩', makeBookingId(12, new Date(2026, 11, 3)), 'TD-261203-12');
+
+  // --- Moods (실제 localStorage를 쓰되 테스트 후 원상 복구)
+  const backup = localStorage.getItem('todak.moods');
+  localStorage.removeItem('todak.moods');
+  ok('빈 저장소 조회는 null', Moods.get('2026-08-30'), null);
+  Moods.set('2026-08-30', 'good', '괜찮은 하루');
+  ok('저장 후 감정 조회', Moods.get('2026-08-30').mood, 'good');
+  ok('저장 후 메모 조회', Moods.get('2026-08-30').memo, '괜찮은 하루');
+  Moods.set('2026-08-30', 'hard', '');
+  ok('같은 날짜 재저장은 덮어쓰기', Moods.get('2026-08-30').mood, 'hard');
+  ok('하루 1건만 유지', Object.keys(Moods.all()).length, 1);
+  Moods.remove('2026-08-30');
+  ok('삭제 후 null', Moods.get('2026-08-30'), null);
+  if (backup === null) localStorage.removeItem('todak.moods');
+  else localStorage.setItem('todak.moods', backup);
+
+  console.log('\n' + log.join('\n') + '\n');
+  const failed = log.filter(l => l.startsWith('❌')).length;
+  console.log(failed ? `${failed}건 실패` : `전체 ${log.length}건 통과`);
+  return failed === 0;
+}
+window.selfTest = selfTest;
 </script>
 </body>
 </html>
