@@ -915,7 +915,7 @@ function renderHome(root){
       <a class="card card--tap next-book glare" href="#/booking" data-reveal>
         <span class="next-book__date">
           ${Number(upcoming.date.slice(5,7))}/${Number(upcoming.date.slice(8,10))}
-          <small>${upcoming.slot.split(' ')[0]}</small>
+          <small>${esc(upcoming.slot.split(' ')[0])}</small>
         </span>
         <span class="menu__body"><b>위클래스 상담 예약됨</b>
           <span class="muted">신청번호 ${esc(upcoming.id)}</span></span>
