@@ -418,6 +418,16 @@ a{color:inherit; text-decoration:none}
 .mood-btn:hover{transform:translateY(-3px)}
 .mood-btn.is-on{background:var(--white); border-color:var(--pick); color:var(--ink); box-shadow:var(--shadow)}
 .sheet__actions{display:grid; grid-template-columns:1fr auto; gap:9px; margin-top:14px}
+
+.sum__lead{font-size:15px; margin-bottom:14px}
+.sum__num{font-size:26px; font-weight:800; color:var(--green-700); margin-right:2px}
+.sum__bars{display:grid; gap:9px}
+.sum__row{display:grid; grid-template-columns:76px 1fr 20px; align-items:center; gap:9px}
+.sum__label{font-size:12px; font-weight:700; color:var(--ink-muted); display:flex; gap:4px; align-items:center}
+.sum__track{height:8px; border-radius:4px; background:var(--green-50); overflow:hidden}
+.sum__fill{display:block; height:100%; width:0; border-radius:4px;
+           transition:width var(--dur-slow) var(--ease-out)}
+.sum__cnt{font-size:12px; font-weight:800; color:var(--ink-muted); text-align:right}
 </style>
 </head>
 <body>
@@ -1261,6 +1271,41 @@ function renderBookingDone(root){
 const _now = new Date();
 let calState = { year:_now.getFullYear(), month:_now.getMonth() + 1, dir:'' };
 
+function renderMonthSummary(host, moods, prefix){
+  const { counts, total } = monthStats(moods, prefix);
+
+  if (!total){
+    host.innerHTML = `
+      <div class="empty" style="margin-top:22px">
+        아직 이 달의 기록이 없어요.<br>날짜를 눌러 그날의 마음을 남겨 보세요.
+      </div>`;
+    return;
+  }
+
+  host.innerHTML = `
+    <h3 class="section-title">이번 달 마음 살펴보기</h3>
+    <div class="card">
+      <p class="sum__lead"><b class="sum__num" id="sumTotal">0</b>일 기록했어요</p>
+      <div class="sum__bars">
+        ${MOODS.map(m => `
+          <div class="sum__row">
+            <span class="sum__label"><span aria-hidden="true">${m.emoji}</span>${m.label}</span>
+            <span class="sum__track">
+              <span class="sum__fill" data-w="${Math.round(counts[m.key] / total * 100)}"
+                    style="background:${m.color}"></span>
+            </span>
+            <span class="sum__cnt">${counts[m.key]}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  fx.countUp(document.getElementById('sumTotal'), total);
+  // 다음 프레임에 width를 넣어야 0% → 실제값 트랜지션이 실행된다
+  requestAnimationFrame(() => {
+    host.querySelectorAll('.sum__fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+  });
+}
+
 function renderCalendar(root){
   const { year, month } = calState;
   const today  = ymd(new Date());
@@ -1320,6 +1365,8 @@ function renderCalendar(root){
     if (!cell || cell.disabled) return;
     openMoodSheet(cell.dataset.day, () => { renderCalendar(root); fx.enhance(root); });
   });
+
+  renderMonthSummary(document.getElementById('calSummary'), moods, prefix);
 }
 
 function openMoodSheet(date, onSaved){
