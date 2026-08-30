@@ -368,6 +368,56 @@ a{color:inherit; text-decoration:none}
 }
 .mine__cancel:hover{color:var(--danger); border-color:#EFC9BE}
 /* == CALENDAR == */
+.cal__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px}
+.cal__title{font-size:19px; font-weight:800; letter-spacing:-.03em}
+.cal__nav{
+  width:36px; height:36px; border-radius:50%;
+  background:var(--white); border:1px solid var(--line);
+  display:grid; place-items:center; color:var(--green-700); font-size:15px;
+  transition:background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
+}
+.cal__nav:hover:not(:disabled){background:var(--green-100)}
+.cal__nav:active:not(:disabled){transform:scale(.9)}
+.cal__nav:disabled{opacity:.3; cursor:not-allowed}
+
+.cal__dows{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px}
+.cal__dow{text-align:center; font-size:11px; font-weight:700; color:var(--ink-muted); padding:3px 0}
+.cal__dow:first-child{color:var(--danger)}
+
+.cal__grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.cal__cell{
+  aspect-ratio:1; border-radius:12px; background:var(--white); border:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  font-size:12.5px; font-weight:700; color:var(--ink);
+  transition:transform var(--dur-fast) var(--ease-spring),
+             border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.cal__cell:hover:not(:disabled){border-color:var(--green-300)}
+.cal__cell:active:not(:disabled){transform:scale(.92)}
+.cal__cell:disabled{opacity:.3; cursor:default}
+.cal__cell--blank{background:transparent; border-color:transparent; pointer-events:none}
+.cal__cell--today{box-shadow:0 0 0 2px rgba(47,163,107,.22)}
+.cal__cell.has-mood{background:color-mix(in srgb, var(--cell) 26%, #fff); border-color:transparent}
+.cal__emoji{font-size:15px; line-height:1}
+
+@keyframes slide-l{from{opacity:0; transform:translateX(20px)} to{opacity:1; transform:none}}
+@keyframes slide-r{from{opacity:0; transform:translateX(-20px)} to{opacity:1; transform:none}}
+.slide-next{animation:slide-l var(--dur-slow) var(--ease-out) both}
+.slide-prev{animation:slide-r var(--dur-slow) var(--ease-out) both}
+
+.sheet__date{font-size:16px; font-weight:800; margin-bottom:14px}
+.sheet__moods{display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin-bottom:16px}
+.mood-btn{
+  display:flex; flex-direction:column; align-items:center; gap:5px; padding:12px 3px;
+  border-radius:var(--radius); background:var(--green-50); border:1.5px solid transparent;
+  font-size:10.5px; font-weight:700; color:var(--ink-muted);
+  transition:transform var(--dur-base) var(--ease-spring),
+             background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.mood-btn .e{font-size:24px; line-height:1}
+.mood-btn:hover{transform:translateY(-3px)}
+.mood-btn.is-on{background:var(--white); border-color:var(--pick); color:var(--ink); box-shadow:var(--shadow)}
+.sheet__actions{display:grid; grid-template-columns:1fr auto; gap:9px; margin-top:14px}
 </style>
 </head>
 <body>
@@ -1208,7 +1258,133 @@ function renderBookingDone(root){
     fx.enhance(root);
   });
 }
-function renderCalendar(root){ root.innerHTML = '<p>CALENDAR</p>'; }
+const _now = new Date();
+let calState = { year:_now.getFullYear(), month:_now.getMonth() + 1, dir:'' };
+
+function renderCalendar(root){
+  const { year, month } = calState;
+  const today  = ymd(new Date());
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const cells  = buildMonth(year, month);
+  const moods  = Moods.all();
+  const atMaxMonth = prefix >= today.slice(0, 7);   // 다음 달 이동 제한
+
+  root.innerHTML = `
+    <div class="cal__head">
+      <button class="cal__nav" id="prevM" aria-label="이전 달">‹</button>
+      <span class="cal__title">${year}년 ${month}월</span>
+      <button class="cal__nav" id="nextM" aria-label="다음 달" ${atMaxMonth ? 'disabled' : ''}>›</button>
+    </div>
+
+    <div id="calBody" class="${calState.dir}">
+      <div class="cal__dows" aria-hidden="true">
+        ${WEEK_KO.map(d => `<span class="cal__dow">${d}</span>`).join('')}
+      </div>
+      <div class="cal__grid" id="calGrid">
+        ${cells.map(date => {
+          if (!date) return '<span class="cal__cell cal__cell--blank"></span>';
+          const rec    = moods[date];
+          const mood   = rec ? MOOD_BY_KEY[rec.mood] : null;
+          const future = date > today;
+          return `<button class="cal__cell ${mood ? 'has-mood' : ''} ${date === today ? 'cal__cell--today' : ''}"
+                    ${mood ? `style="--cell:${mood.color}"` : ''}
+                    data-day="${date}" ${future ? 'disabled' : ''}
+                    aria-label="${Number(date.slice(8,10))}일${mood ? ' ' + mood.label : ' 기록 없음'}">
+            <span>${Number(date.slice(8,10))}</span>
+            ${mood ? `<span class="cal__emoji" aria-hidden="true">${mood.emoji}</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div id="calSummary"></div>
+  `;
+  calState.dir = '';
+
+  fx.reveal(document.getElementById('calGrid'),
+            '.cal__cell:not(.cal__cell--blank)', { y:8, dur:400, stagger:11, cap:280 });
+
+  document.getElementById('prevM').addEventListener('click', () => {
+    calState.month--; if (calState.month < 1){ calState.month = 12; calState.year--; }
+    calState.dir = 'slide-prev';
+    renderCalendar(root); fx.enhance(root);
+  });
+  document.getElementById('nextM').addEventListener('click', () => {
+    calState.month++; if (calState.month > 12){ calState.month = 1; calState.year++; }
+    calState.dir = 'slide-next';
+    renderCalendar(root); fx.enhance(root);
+  });
+
+  document.getElementById('calGrid').addEventListener('click', e => {
+    const cell = e.target.closest('[data-day]');
+    if (!cell || cell.disabled) return;
+    openMoodSheet(cell.dataset.day, () => { renderCalendar(root); fx.enhance(root); });
+  });
+}
+
+function openMoodSheet(date, onSaved){
+  const rec = Moods.get(date);
+  let picked = rec ? rec.mood : null;
+
+  const dim = document.createElement('div');
+  dim.className = 'sheet-dim';
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.setAttribute('role', 'dialog');
+  sheet.setAttribute('aria-modal', 'true');
+  sheet.innerHTML = `
+    <span class="sheet__grip" aria-hidden="true"></span>
+    <p class="sheet__date">${formatKDate(date)} 기분은 어땠나요?</p>
+    <div class="sheet__moods">
+      ${MOODS.map(m => `
+        <button class="mood-btn ${picked === m.key ? 'is-on' : ''}"
+                data-mood="${m.key}" style="--pick:${m.color}">
+          <span class="e" aria-hidden="true">${m.emoji}</span>${m.label}
+        </button>`).join('')}
+    </div>
+    <label class="label" for="memo">한 줄 메모 (선택)</label>
+    <div class="field">
+      <textarea id="memo" rows="3" maxlength="200"
+        placeholder="오늘 있었던 일을 짧게 남겨 보세요.">${esc(rec ? rec.memo : '')}</textarea>
+    </div>
+    <div class="sheet__actions">
+      <button class="btn btn--primary" id="saveMood" data-spark ${picked ? '' : 'disabled'}>저장하기</button>
+      <button class="btn btn--ghost" id="closeSheet">닫기</button>
+    </div>
+    ${rec ? '<button class="btn btn--ghost btn--block" id="delMood" style="margin-top:9px">기록 삭제</button>' : ''}
+  `;
+  document.body.append(dim, sheet);
+  fx.reveal(sheet, '.mood-btn', { y:10, dur:340, stagger:38 });
+
+  const close = () => {
+    dim.remove(); sheet.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  dim.addEventListener('click', close);
+  sheet.querySelector('#closeSheet').addEventListener('click', close);
+
+  sheet.querySelectorAll('[data-mood]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picked = btn.dataset.mood;
+      sheet.querySelectorAll('[data-mood]').forEach(b => b.classList.toggle('is-on', b === btn));
+      sheet.querySelector('#saveMood').disabled = false;
+    });
+  });
+
+  sheet.querySelector('#saveMood').addEventListener('click', () => {
+    if (!picked) return;
+    Moods.set(date, picked, sheet.querySelector('#memo').value.trim());
+    close(); onSaved();
+  });
+
+  const del = sheet.querySelector('#delMood');
+  if (del) del.addEventListener('click', () => {
+    if (!confirm('이 날의 기록을 삭제할까요?')) return;
+    Moods.remove(date); close(); onSaved();
+  });
+}
 /* == ROUTER == */
 const ROUTES = { home:renderHome, chat:renderChat, booking:renderBooking, calendar:renderCalendar };
 const TAB_ORDER = ['home','chat','booking','calendar'];
