@@ -11,7 +11,7 @@
  *
  * 앱을 고친 뒤에는 CACHE 값을 올려야 이전 캐시가 정리된다.
  */
-const CACHE = 'todak-v4';
+const CACHE = 'todak-v5';
 
 const ASSETS = [
   './',
