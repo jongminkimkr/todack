@@ -457,6 +457,14 @@ function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(
 /* == LOGIC == */
 /* == FX == */
 /* == VIEWS == */
+/* 해시를 바꾸지 않고 화면만 다시 그린다. router()와 달리 주소는 그대로지만
+   스크롤은 위로 되돌려야 한다 — 아니면 새 화면이 중간부터 보인다.
+   간편 상담 결과에서는 위기 안내 카드가 화면 밖으로 밀려나므로 특히 중요하다. */
+function rerender(root, render){
+  render(root);
+  try { fx.enhance(root); } catch (err) { console.warn('fx 실패', err); }
+  window.scrollTo(0, 0);
+}
 function renderHome(root){ root.innerHTML = '<p>HOME</p>'; }
 function renderChat(root){ root.innerHTML = '<p>CHAT</p>'; }
 function renderBooking(root){ root.innerHTML = '<p>BOOKING</p>'; }
@@ -468,6 +476,9 @@ function router(){
   const name = (location.hash.replace('#/','').split('?')[0]) || 'home';
   const key = ROUTES[name] ? name : 'home';
   const root = document.getElementById('view');
+  /* 시트는 body에 붙어 있어 #view 교체로 사라지지 않는다.
+     열어둔 채 뒤로가기를 누르면 화면만 바뀌고 시트가 남아 상태가 어긋난다. */
+  document.querySelectorAll('.sheet, .sheet-dim').forEach(n => n.remove());
   root.innerHTML = '';
   ROUTES[key](root);
   document.querySelectorAll('.tabbar a').forEach(a =>
@@ -619,16 +630,25 @@ function makeBookingId(seq, today = new Date()){
 }
 
 const Bookings = {
-  all(){ return DB.read('bookings', []); },
+  all(){ const v = DB.read('bookings', []); return Array.isArray(v) ? v : []; },
   taken(){ return new Set(this.all().map(b => b.date + '|' + b.slot)); },
   add(entry){
     const list = this.all();
-    const record = { id: makeBookingId(list.length + 1), createdAt: new Date().toISOString(), ...entry };
+    /* 길이로 번호를 매기면 취소 후 번호가 재사용되어 기존 신청과 충돌한다 */
+    const prefix = makeBookingId(0).slice(0, -2);
+    const used = list.filter(b => String(b.id).startsWith(prefix))
+                     .map(b => Number(String(b.id).slice(-2)) || 0);
+    const seq = (used.length ? Math.max(...used) : 0) + 1;
+    const record = { id: makeBookingId(seq), createdAt: new Date().toISOString(), ...entry };
     list.push(record);
     DB.write('bookings', list);
     return record;
   },
-  cancel(id){ DB.write('bookings', this.all().filter(b => b.id !== id)); }
+  cancel(id){
+    const list = this.all();
+    const i = list.findIndex(b => b.id === id);
+    if (i >= 0){ list.splice(i, 1); DB.write('bookings', list); }
+  }
 };
 ```
 
@@ -1143,6 +1163,7 @@ git add index.html && git commit -m "feat: 이펙트 엔진 - reveal/typeText/sc
 function renderHome(root){
   const today = ymd(new Date());
   const todayMood = Moods.get(today);
+  const todayM = todayMood && MOOD_BY_KEY[todayMood.mood];   // 알 수 없는 키여도 화면이 죽지 않게
   const thisMonth = today.slice(0, 7);
   const monthCount = Object.keys(Moods.all()).filter(d => d.startsWith(thisMonth)).length;
   const upcoming = Bookings.all()
@@ -1182,8 +1203,8 @@ function renderHome(root){
         <span class="muted">이번 달 기록한 날</span>
       </div>
       <div class="card stat" data-reveal>
-        <b class="stat__num">${todayMood ? MOOD_BY_KEY[todayMood.mood].emoji : '—'}</b>
-        <span class="muted">${todayMood ? '오늘 ' + MOOD_BY_KEY[todayMood.mood].label : '오늘 기록 없음'}</span>
+        <b class="stat__num">${todayM ? todayM.emoji : '—'}</b>
+        <span class="muted">${todayM ? '오늘 ' + todayM.label : '오늘 기록 없음'}</span>
       </div>
     </div>
 
@@ -1265,8 +1286,18 @@ git add index.html && git commit -m "feat: HOME 화면 - 오로라 히어로, �
 `/* == DATA: 상수 == */` 구획, `MOOD_BY_KEY` 아래에 넣는다.
 
 ```js
-const CRISIS_WORDS = ['자해','자살','죽고 싶','죽고싶','죽어버','사라지고 싶','사라지고싶',
-                      '없어지고 싶','없어지고싶','살기 싫','살기싫','뛰어내리'];
+/* 공백을 제거한 문자열과 대조하므로 모두 붙여 쓴 형태로만 적는다.
+   위기 응답은 부드럽고 덧붙이는 성격이라, 놓치는 것보다 넓게 잡는 편이 낫다. */
+const CRISIS_WORDS = [
+  '자해','자살','유서','자살충동','자해충동',
+  '죽고싶','죽고파','죽어버','죽을래','죽자','죽어야',
+  '살기싫','살고싶지않','살아있고싶지않',
+  '사라지고싶','없어지고싶','없어지면편','없어지는게',
+  '뛰어내리','목을매','목매달','손목을긋','손목긋','손목을그','손목그',
+  '극단적인생각','극단적선택',
+  '다끝내고싶','끝내버리고싶','끝내고싶',
+  '살아서뭐하나','사는게의미가없','살아있는게의미가없','사는의미가없',
+];
 
 const CRISIS_RULE = {
   id:'crisis', label:'지금 바로 도움받기', urgent:true, suggest:true,
@@ -1347,7 +1378,9 @@ const RULES = [
     suggest:true },
 
   { id:'selfesteem', label:'자존감',
-    keywords:['외모','살','뚱뚱','못생','자존감','자신감','비교','부족한','한심','쓸모','못하는'],
+    /* '살'은 살다·살고·살아를 전부 삼켜 위기 표현을 가로채므로 쓰지 않는다 */
+    keywords:['외모','살쪘','살찐','살 빼','다이어트','뚱뚱','못생','자존감','자신감',
+              '비교','부족한','한심','쓸모','못하는'],
     reflect:'스스로를 계속 깎아내리는 생각은 사실보다 훨씬 크게 들려요. 그 목소리에 많이 시달렸겠어요.',
     advice:'나에 대한 평가를 남의 기준에서 잠깐 떼어놓는 연습이 필요해요.',
     tips:['오늘 나에게 했던 말을 친구가 들었다면 뭐라고 했을지 생각해 보기',
@@ -1364,7 +1397,8 @@ const RULES = [
 ```js
 function pickAdvice(text){
   const t = String(text || '');
-  if (CRISIS_WORDS.some(w => t.includes(w))) return CRISIS_RULE;
+  const flat = t.replace(/\s/g, '');          // '죽고 싶다'와 '죽고싶다'를 같게 본다
+  if (CRISIS_WORDS.some(w => flat.includes(w))) return CRISIS_RULE;
   let best = null, bestScore = 0;
   for (const rule of RULES){
     const score = rule.keywords.reduce((n, k) => n + (t.includes(k) ? 1 : 0), 0);
@@ -1492,8 +1526,7 @@ function renderChatInput(root){
     const text = ta.value.trim();
     if (!text){ ta.focus(); return; }
     chatState = { text, result: pickAdvice(text) };
-    renderChat(root);
-    fx.enhance(root);
+    rerender(root, renderChat);
   });
 }
 
@@ -1525,7 +1558,7 @@ function renderChatResult(root){
 
     <p class="disclaimer">
       ${urgent
-        ? '지금 많이 힘들다면 혼자 견디지 마세요. 자살예방 상담전화 <b>109</b>, 청소년 상담전화 <b>1388</b>은 24시간 열려 있어요.'
+        ? '지금 많이 힘들다면 혼자 견디지 마세요. 자살예방 상담전화 <b><a href="tel:109">109</a></b>, 청소년 상담전화 <b><a href="tel:1388">1388</a></b>은 24시간 열려 있어요.'
         : '토닥+의 간편 상담은 전문 심리상담을 대신하지 않아요. 더 이야기하고 싶다면 위클래스 상담을 신청해 보세요.'}
     </p>
   `;
@@ -1538,8 +1571,7 @@ function renderChatResult(root){
 
   document.getElementById('again').addEventListener('click', () => {
     chatState = { text: chatState.text, result: null };
-    renderChat(root);
-    fx.enhance(root);
+    rerender(root, renderChat);
   });
 }
 ```
@@ -1815,15 +1847,13 @@ function renderBookingPick(root){
     if (!cancelBtn) return;
     if (!confirm('이 상담 신청을 취소할까요?')) return;
     Bookings.cancel(cancelBtn.dataset.cancel);
-    renderBooking(root);
-    fx.enhance(root);
+    rerender(root, renderBooking);
   });
 
   nextBtn.addEventListener('click', () => {
     if (!bookState.date || !bookState.slot) return;
     bookState.step = 2;
-    renderBooking(root);
-    fx.enhance(root);
+    rerender(root, renderBooking);
   });
 }
 
@@ -1875,8 +1905,7 @@ function renderBookingForm(root){
 
   document.getElementById('back').addEventListener('click', () => {
     bookState.step = 1;
-    renderBooking(root);
-    fx.enhance(root);
+    rerender(root, renderBooking);
   });
 
   document.getElementById('submit').addEventListener('click', () => {
@@ -1894,8 +1923,7 @@ function renderBookingForm(root){
       message: document.getElementById('msg').value.trim(),
     });
     bookState.step = 3;
-    renderBooking(root);
-    fx.enhance(root);
+    rerender(root, renderBooking);
   });
 }
 
@@ -1929,8 +1957,7 @@ function renderBookingDone(root){
 
   document.getElementById('newBooking').addEventListener('click', () => {
     bookState = { step:1, date:null, slot:null, done:null };
-    renderBooking(root);
-    fx.enhance(root);
+    rerender(root, renderBooking);
   });
 }
 ```
@@ -2150,18 +2177,18 @@ function renderCalendar(root){
   document.getElementById('prevM').addEventListener('click', () => {
     calState.month--; if (calState.month < 1){ calState.month = 12; calState.year--; }
     calState.dir = 'slide-prev';
-    renderCalendar(root); fx.enhance(root);
+    rerender(root, renderCalendar);
   });
   document.getElementById('nextM').addEventListener('click', () => {
     calState.month++; if (calState.month > 12){ calState.month = 1; calState.year++; }
     calState.dir = 'slide-next';
-    renderCalendar(root); fx.enhance(root);
+    rerender(root, renderCalendar);
   });
 
   document.getElementById('calGrid').addEventListener('click', e => {
     const cell = e.target.closest('[data-day]');
     if (!cell || cell.disabled) return;
-    openMoodSheet(cell.dataset.day, () => { renderCalendar(root); fx.enhance(root); });
+    openMoodSheet(cell.dataset.day, () => { rerender(root, renderCalendar); });
   });
 }
 
@@ -2352,7 +2379,7 @@ git add index.html && git commit -m "feat: 월별 감정 분포 요약과 빈 �
 ```
 selfTest()
 ```
-기대: `전체 40건 통과`, 반환값 `true`. **한 건이라도 실패하면 다음 단계로 넘어가지 않는다.**
+기대: `전체 49건 통과`, 반환값 `true`. **한 건이라도 실패하면 다음 단계로 넘어가지 않는다.**
 
 - [ ] **Step 2: 요구 정의서 6번 전체 사용자 흐름 재현**
 
@@ -2448,3 +2475,33 @@ start index.html         # Windows
 ```
 
 빌드도 서버도 필요 없다. 브라우저 콘솔에서 `selfTest()`로 로직 검증, `localStorage.clear()`로 초기화한다.
+
+---
+
+## 10. 최종 검토에서 나온 것 (2026-08-30)
+
+구현 완료 후 전체 코드 검토에서 결함이 나왔다. 재현 확인 후 아래를 수정했고, 계획서 코드 블록도 함께 고쳤다.
+
+### 수정 완료
+
+| # | 문제 | 왜 중요한가 |
+|---|---|---|
+| C1 | 자존감 규칙의 키워드 `'살'`이 **살다·살고·살아를 전부 삼켰다.** 「살고 싶지 않아요」가 위기가 아니라 자존감으로 분류되어 "SNS를 하루 쉬어 보기" 조언과 함께 **전화번호 없이** 응답됐다. 「유서」·「손목을 그었어요」·「다 끝내고 싶어요」 등도 위기 목록에 없어 기본 응답으로 빠졌다. | 이 앱이 절대 해서는 안 되는 실패. 위기 표현이 무관한 규칙에 가로채여 도움 연결이 끊긴다. |
+| C2 | 신청번호를 `list.length + 1`로 매겨서, **취소 후 번호가 재사용**됐다. 같은 번호가 두 건이 되고, 그중 하나를 취소하면 `filter`가 **둘 다 지웠다.** | 학생이 건드리지 않은 예약이 조용히 사라진다. |
+| I1 | 감정 기록 시트가 `body`에 붙어 있어 **라우팅해도 남았다.** 뒤로가기 시 화면만 바뀌고 시트가 떠 있어 상태가 어긋났다. | 안드로이드 하드웨어 뒤로가기에서 재현된다. |
+| I2 | 제자리 재렌더(이야기 나누기·다음·이전으로 등)에서 **스크롤이 복귀되지 않았다.** 간편 상담 결과가 중간부터 보여 **위기 안내 카드가 화면 밖으로 밀릴 수 있었다.** | 급한 정보가 스크롤 위로 사라진다. `rerender()` 헬퍼로 통일. |
+| I5 | 저장 데이터가 손상되면 `MOOD_BY_KEY[...].emoji`에서 예외가 나 **홈이 백지**가 되고 새로고침으로도 복구되지 않았다. | 앱 내 경로로는 발생하지 않지만, 공용 PC에서 복구 불가 상태가 된다. |
+| I7 | 109·1388이 일반 텍스트여서 **누를 수 없었다.** | 가장 힘든 순간에 번호를 외워 다시 입력해야 한다. `tel:` 링크로 변경. |
+
+C1·C2는 `selfTest()`에 회귀 어서션 9건을 추가해 고정했다 (총 **49건**).
+
+### 판단이 필요한 미결 항목
+
+아래는 임의로 고치지 않았다. 제품 판단이 필요하거나 범위를 넘는다.
+
+| # | 내용 | 논점 |
+|---|---|---|
+| I3 | 상담 신청 2단계에서 **「이전으로」를 누르면 입력한 내용이 전부 사라진다.** 학년·반·이름·주제·하고 싶은 말이 DOM에만 있고 `bookState`에 없다. | 실제로 학생이 신청을 포기하는 지점일 가능성이 가장 높다. `bookState`에 폼 값을 올리는 작은 리팩터가 필요하다. |
+| I4 | `localStorage` 저장이 실패해도 **「상담 신청이 접수됐어요」와 신청번호를 그대로 보여준다.** (Safari는 `file://`에서 `localStorage`를 막을 수 있다 — 미확인) | 저장 안 된 걸 접수됐다고 말하는 건 이 앱의 전제와 충돌한다. 시작 시 저장 가능 여부를 탐지해 배너를 띄우는 방안. |
+| I6 | 공용 PC에서 **내 신청 내역이 모두에게 보이고 취소도 가능**하다. 간편 상담에 쓴 글이 신청 메시지로 조용히 복사되어 학년·반·이름과 함께 저장된다. | 「이 기기에만 저장」은 사실이지만, 공용 기기에서는 그게 위험 요소다. 최소한 "이 기기에서 내 기록 지우기" 동작이 필요하다. |
+| 기타 | `fx.typeText`의 건너뛰기 반환값 미사용, 시트 포커스 트랩 부재, 입력 3개에 접근 가능한 이름 없음, 탭에 `aria-current` 없음, 두 탭 간 슬롯 표시 지연, 날짜 배지 마크업 3곳 중복 | 개별로는 작지만 접근성 항목은 함께 처리하는 편이 낫다. |
