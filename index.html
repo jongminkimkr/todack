@@ -885,7 +885,7 @@ function renderChatResult(root){
     fx.revealWords(document.getElementById('reflect'));
     fx.typeText(document.getElementById('advice'), r.advice, { speed: 18 });
   }
-  // urgent일 때는 어떤 연출도 하지 않는다 — 전부 즉시 보인다
+  // urgent일 때는 어떤 연출도 하지 않는다 — 전부 즉시 보인다 (§5.5)
 
   document.getElementById('again').addEventListener('click', () => {
     chatState = { text: chatState.text, result: null };
