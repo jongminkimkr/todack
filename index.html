@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4FBF7">
+<title>토닥+ — 마음을 토닥이고, 도움을 더하다</title>
+<style>
+/* == TOKENS == */
+:root{
+  --white:#FFFFFF;
+  --green-50:#F4FBF7;  --green-100:#E6F5EC; --green-200:#C8E6D5;
+  --green-300:#7FD1A6; --green-500:#2FA36B; --green-600:#25895A; --green-700:#1F7A4D;
+  --ink:#16261E; --ink-muted:#5C7268; --line:#DCEAE2;
+  --mood-5:#2FA36B; --mood-4:#7FD1A6; --mood-3:#C8E6D5; --mood-2:#F0C48A; --mood-1:#E39B8F;
+  --danger:#C0553F; --danger-bg:#FCEEEA;
+  --radius:14px; --radius-lg:20px; --radius-pill:999px;
+  --shadow-sm:0 1px 3px rgba(22,38,30,.06);
+  --shadow:0 4px 16px rgba(22,38,30,.08);
+  --shadow-lg:0 12px 32px rgba(22,38,30,.12);
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,-apple-system,sans-serif;
+  --app-w:480px;
+}
+/* == MOTION == */
+:root{
+  --dur-fast:140ms; --dur-base:260ms; --dur-slow:480ms; --dur-reveal:620ms;
+  --ease-out:cubic-bezier(.22,.61,.36,1);
+  --ease-spring:cubic-bezier(.34,1.42,.64,1);
+  --stagger:55ms;
+}
+@keyframes drift-a{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(12%,8%) scale(1.15)}}
+@keyframes drift-b{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-10%,12%) scale(.95)}}
+@keyframes drift-c{0%,100%{transform:translate(0,0) scale(.95)}50%{transform:translate(8%,-10%) scale(1.2)}}
+@keyframes shine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes star-orbit{to{transform:rotate(360deg)}}
+@keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+.is-hidden-fx{opacity:0}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+  .aurora__blob{animation:none !important}
+  .is-hidden-fx{opacity:1 !important}
+}
+/* == BASE == */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--green-50);
+  -webkit-font-smoothing:antialiased; line-height:1.55;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+}
+h1,h2,h3{margin:0; line-height:1.3; letter-spacing:-.02em}
+p{margin:0}
+button{font:inherit; color:inherit; cursor:pointer; border:0; background:none}
+a{color:inherit; text-decoration:none}
+:focus-visible{outline:2px solid var(--green-500); outline-offset:2px; border-radius:6px}
+/* == SHELL == */
+.appbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:8px;
+  max-width:var(--app-w); margin:0 auto; padding:14px 20px 10px;
+  background:linear-gradient(to bottom,var(--green-50) 70%,transparent);
+}
+.appbar__logo{width:26px; height:26px; color:var(--green-500); flex:none}
+.appbar__title{font-size:19px; font-weight:800; letter-spacing:-.03em}
+.appbar__title .plus{color:var(--green-500)}
+#view{max-width:var(--app-w); margin:0 auto; padding:4px 20px 24px; position:relative}
+.view-fade{
+  position:fixed; bottom:calc(72px + env(safe-area-inset-bottom)); left:50%;
+  transform:translateX(-50%); width:100%; max-width:var(--app-w); height:56px;
+  pointer-events:none; z-index:19;
+  background:linear-gradient(to top,var(--green-50) 25%,transparent);
+}
+.noise{
+  position:fixed; inset:0; pointer-events:none; z-index:60; opacity:.03; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.tabbar{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:var(--app-w); z-index:20;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.86); backdrop-filter:blur(14px) saturate(1.4);
+  border-top:1px solid var(--line);
+}
+.tabbar__pill{
+  position:absolute; top:6px; left:8px; z-index:0;
+  width:calc((100% - 16px)/4); height:60px; border-radius:var(--radius);
+  background:var(--green-100);
+  transform:translateX(calc(var(--tab-i,0) * 100%));
+  transition:transform var(--dur-base) var(--ease-spring);
+}
+.tabbar a{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  height:60px; font-size:11px; font-weight:600; color:var(--ink-muted);
+  transition:color var(--dur-base) var(--ease-out);
+}
+.tabbar a .ico{font-size:19px; line-height:1; transition:transform var(--dur-base) var(--ease-spring)}
+.tabbar a.is-active{color:var(--green-700)}
+.tabbar a.is-active .ico{transform:translateY(-2px) scale(1.12)}
+/* == COMPONENTS == */
+/* (Task 5에서 채운다) */
+/* == HOME == */
+/* == CHAT == */
+/* == BOOKING == */
+/* == CALENDAR == */
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo-clover" viewBox="0 0 48 48">
+    <g fill="currentColor">
+      <path id="td-leaf" d="M24 24C24 24 24.2 13.6 21.5 10.9C19 8.4 15 8.4 12.5 10.9C10 13.4 10 17.4 12.5 19.9C15.2 22.6 24 24 24 24Z"/>
+      <use href="#td-leaf" transform="rotate(90 24 24)"/>
+      <use href="#td-leaf" transform="rotate(180 24 24)"/>
+      <use href="#td-leaf" transform="rotate(270 24 24)"/>
+    </g>
+    <path d="M24 25.5C26 30 26.2 35 23.5 39.5" fill="none"
+          stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<header class="appbar">
+  <svg class="appbar__logo" aria-hidden="true"><use href="#logo-clover"/></svg>
+  <h1 class="appbar__title">토닥<span class="plus">+</span></h1>
+</header>
+
+<main id="view" role="main"></main>
+
+<div class="view-fade" aria-hidden="true"></div>
+<div class="noise" aria-hidden="true"></div>
+
+<nav class="tabbar" aria-label="주요 화면">
+  <span class="tabbar__pill" aria-hidden="true"></span>
+  <a href="#/home"     data-tab="home"><span class="ico">🍀</span>홈</a>
+  <a href="#/chat"     data-tab="chat"><span class="ico">💬</span>간편 상담</a>
+  <a href="#/booking"  data-tab="booking"><span class="ico">📝</span>상담 신청</a>
+  <a href="#/calendar" data-tab="calendar"><span class="ico">📅</span>감정달력</a>
+</nav>
+
+<script>
+'use strict';
+/* == DATA: 상수 == */
+/* == UTIL == */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ymd(date){
+  return date.getFullYear() + '-' +
+         String(date.getMonth() + 1).padStart(2,'0') + '-' +
+         String(date.getDate()).padStart(2,'0');
+}
+function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+/* == STORE == */
+/* == LOGIC == */
+/* == FX == */
+/* == VIEWS == */
+function renderHome(root){ root.innerHTML = '<p>HOME</p>'; }
+function renderChat(root){ root.innerHTML = '<p>CHAT</p>'; }
+function renderBooking(root){ root.innerHTML = '<p>BOOKING</p>'; }
+function renderCalendar(root){ root.innerHTML = '<p>CALENDAR</p>'; }
+/* == ROUTER == */
+const ROUTES = { home:renderHome, chat:renderChat, booking:renderBooking, calendar:renderCalendar };
+const TAB_ORDER = ['home','chat','booking','calendar'];
+function router(){
+  const name = (location.hash.replace('#/','').split('?')[0]) || 'home';
+  const key = ROUTES[name] ? name : 'home';
+  const root = document.getElementById('view');
+  root.innerHTML = '';
+  ROUTES[key](root);
+  document.querySelectorAll('.tabbar a').forEach(a =>
+    a.classList.toggle('is-active', a.dataset.tab === key));
+  document.querySelector('.tabbar')
+    .style.setProperty('--tab-i', TAB_ORDER.indexOf(key));
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', router);
+router();
+/* == SELFTEST == */
+</script>
+</body>
+</html>
