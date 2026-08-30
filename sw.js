@@ -11,12 +11,14 @@
  *
  * 앱을 고친 뒤에는 CACHE 값을 올려야 이전 캐시가 정리된다.
  */
-const CACHE = 'todak-v2';
+const CACHE = 'todak-v3';
 
 const ASSETS = [
   './',
   './index.html',
+  './app.html',
   './manifest.webmanifest',
+  './manifest-app.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
