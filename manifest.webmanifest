@@ -8,8 +8,8 @@
   "id": "todak-plus",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#012624",
-  "theme_color": "#012624",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "categories": ["health", "education", "lifestyle"],
   "icons": [
     {
