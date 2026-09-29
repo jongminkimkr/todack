@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#1753c2">
 <meta name="description" content="학생의 심리상담 접근성을 높이는 상담·감정기록 앱">
 <title>토닥애플 — 마음을 토닥이고, 도움을 더하다</title>
 
@@ -22,18 +22,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=Caveat:wght@500&family=Inter:wght@400;500&family=Nanum+Pen+Script&display=swap">
 <style>
 /* == TOKENS == */
-/* Air 스타일: 유리 조각 너머의 한밤 하늘. 검은 캔버스 + 밝은 Haze 카드 + 얇은 선. 그림자·그라디언트 없음. */
+/* Air 스타일 · 파란 하늘: 맑은 낮 하늘 캔버스 + 흰 구름 + 밝은 Haze 카드 + 얇은 선. 그림자 없음. */
 :root{
   --sat:env(safe-area-inset-top); --sab:env(safe-area-inset-bottom);
-  --void:#000000; --haze:#f5f5f5; --whiteout:#ffffff; --ink-dark:#1b1b1b;
+  --void:#1a5bc7; --sky:linear-gradient(180deg,#1753c2 0%,#2a70dc 45%,#4f93e8 100%); --haze:#f5f5f5; --whiteout:#ffffff; --ink-dark:#1b1b1b;
   --twilight:#426188; --signal:#2b7fff;
   /* 아래 토큰은 "지금 서 있는 면" 기준이다. 밝은 면(.card 등)에서는 뒤집힌다. */
-  --bg:var(--void); --ink:#ffffff; --ink-muted:#9a9a9a; --white:#ffffff; --line:rgba(255,255,255,.14);
-  --fill:rgba(255,255,255,.07); --fill-hover:rgba(255,255,255,.12);
+  --bg:var(--void); --ink:#ffffff; --ink-muted:rgba(255,255,255,.84); --white:#ffffff; --line:rgba(255,255,255,.32);
+  --fill:rgba(255,255,255,.14); --fill-hover:rgba(255,255,255,.22); --cv:#ffe7a3;
   --on-bg:#f5f5f5; --on-fg:#1b1b1b;             /* 선택된 토글 */
   --btn-edge:#f5f5f5; --field-bg:#f5f5f5;
-  --mood-5:#e6eeff; --mood-4:#b3c7ea; --mood-3:#8b9bb8; --mood-2:#6d87b3; --mood-1:#426188; --mood-angry:#a58bd0;
-  --danger:#ff7b7b; --danger-bg:rgba(255,90,90,.10);
+  --mood-5:#ffffff; --mood-4:#cfe6ff; --mood-3:#a9bcd6; --mood-2:#ffd27a; --mood-1:#ffab91; --mood-angry:#ff8a9a;
+  --danger:#ffe0da; --danger-bg:rgba(200,40,40,.35);
   --r-input:4px; --r-btn:8px; --r-img:11px; --r-card:12px; --r-pill:9999px;
   --radius:var(--r-card); --radius-lg:var(--r-card);
   --font:'Inter','Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,-apple-system,sans-serif;
@@ -46,8 +46,8 @@
   --ink:#1b1b1b; --ink-muted:#5e5e5e; --white:#1b1b1b; --line:rgba(0,0,0,.12);
   --fill:rgba(0,0,0,.05); --fill-hover:rgba(0,0,0,.09);
   --on-bg:#1b1b1b; --on-fg:#f5f5f5;
-  --btn-edge:#1b1b1b; --field-bg:#ffffff;
-  --mood-5:#2c5cb0; --mood-4:#4f78bb; --mood-3:#6b7686; --mood-2:#426188; --mood-1:#26394f; --mood-angry:#6f4fa3;
+  --btn-edge:#1b1b1b; --field-bg:#ffffff; --cv:#1f63d1;
+  --mood-5:#1f63d1; --mood-4:#4a8fe0; --mood-3:#7a8699; --mood-2:#d4920f; --mood-1:#d9583b; --mood-angry:#c4304b;
   --danger:#c62828; --danger-bg:#fdecec;
   background:var(--haze); color:var(--ink);
 }
@@ -82,14 +82,14 @@ body{
   padding-bottom:calc(100px + var(--sab));
   overscroll-behavior-y:contain;                /* 당겨서 새로고침 방지 */
 }
-html{-webkit-text-size-adjust:100%; background:var(--void)}
+html{-webkit-text-size-adjust:100%; background:var(--void) var(--sky) fixed}
 /* 한밤 하늘: 구름 사진 대신 노이즈로 빚은 구름층을 화면 위쪽에 깐다 */
 html::before{
   content:''; position:fixed; inset:-2% -6% 0 0; z-index:-1; pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='960'%3E%3Cfilter id='c' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0045 .011' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .62  0 0 0 0 .68  0 0 0 0 .78  0 0 0 2.1 -1.05'/%3E%3C/filter%3E%3Crect width='640' height='960' filter='url(%23c)'/%3E%3C/svg%3E") center top/cover no-repeat;
-  -webkit-mask-image:linear-gradient(#000 0%, rgba(0,0,0,.55) 38%, transparent 72%);
-          mask-image:linear-gradient(#000 0%, rgba(0,0,0,.55) 38%, transparent 72%);
-  opacity:.55; animation:drift 60s linear infinite alternate;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='960'%3E%3Cfilter id='c' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0045 .011' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.6 -1.2'/%3E%3C/filter%3E%3Crect width='640' height='960' filter='url(%23c)'/%3E%3C/svg%3E") center top/cover no-repeat;
+  -webkit-mask-image:linear-gradient(#000 0%, rgba(0,0,0,.7) 45%, rgba(0,0,0,.25) 100%);
+          mask-image:linear-gradient(#000 0%, rgba(0,0,0,.7) 45%, rgba(0,0,0,.25) 100%);
+  opacity:.9; animation:drift 60s linear infinite alternate;
 }
 button, a, .chip, .card--tap, .cal__cell, .date-chip, .mood-btn{
   touch-action:manipulation;                    /* 더블탭 확대와 300ms 지연 제거 */
@@ -98,7 +98,7 @@ button, a, .chip, .card--tap, .cal__cell, .date-chip, .mood-btn{
 button, .tabbar a{-webkit-user-select:none; user-select:none}
 h1,h2,h3{margin:0; line-height:1.1; font-weight:500; color:var(--white)}
 p{margin:0}
-em.cv{font-family:var(--font-cursive); font-style:normal; font-weight:500; font-size:1.3em; line-height:.8; color:var(--twilight)}
+em.cv{font-family:var(--font-cursive); font-style:normal; font-weight:500; font-size:1.3em; line-height:.8; color:var(--cv)}
 button{font:inherit; color:inherit; cursor:pointer; border:0; background:none}
 a{color:inherit; text-decoration:none}
 :focus-visible{outline:2px solid var(--white); outline-offset:2px; border-radius:var(--r-btn)}
@@ -109,8 +109,8 @@ a{color:inherit; text-decoration:none}
   display:flex; align-items:center; gap:10px;
   max-width:var(--app-w); margin:0 auto; min-height:calc(64px + var(--sat));
   padding:calc(12px + var(--sat)) 20px 12px;   /* 노치 아래로 */
-  background:rgba(0,0,0,.55); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-  box-shadow:0 0 0 100vmax rgba(0,0,0,.55); clip-path:inset(0 -100vmax);   /* 배경만 화면 끝까지 */
+  background:rgba(23,83,194,.6);
+  box-shadow:0 0 0 100vmax rgba(23,83,194,.6); clip-path:inset(0 -100vmax);   /* 배경만 화면 끝까지 */
 }
 .appbar__logo{width:24px; height:24px; flex:none}
 .appbar__title{font-size:14px; font-weight:500; color:#fff}
@@ -126,8 +126,8 @@ a{color:inherit; text-decoration:none}
   position:fixed; left:50%; transform:translateX(-50%); z-index:20;
   bottom:calc(12px + var(--sab)); width:calc(100% - 24px); max-width:calc(var(--app-w) - 24px);
   display:grid; grid-template-columns:repeat(4,1fr); padding:5px;
-  border-radius:var(--r-pill); border:1px solid rgba(255,255,255,.16);
-  background:rgba(12,12,12,.72); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  border-radius:var(--r-pill); border:1px solid rgba(255,255,255,.35);
+  background:rgba(18,70,170,.55); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
   transition:transform var(--dur-base) var(--ease-out);
 }
 /* 모바일 키보드가 올라왔을 때 tabbar를 숨긴다 */
@@ -141,7 +141,7 @@ a{color:inherit; text-decoration:none}
 .tabbar a{
   position:relative; z-index:1;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  height:50px; font-size:11px; font-weight:500; color:#bdbdbd;
+  height:50px; font-size:11px; font-weight:500; color:rgba(255,255,255,.9);
   transition:color var(--dur-base) var(--ease-out);
 }
 .tabbar a.is-active{color:var(--ink-dark)}
@@ -216,7 +216,7 @@ a{color:inherit; text-decoration:none}
 
 /* --- 바텀 시트 --- */
 .sheet-dim{
-  position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.7);
+  position:fixed; inset:0; z-index:40; background:rgba(10,40,100,.5);
   animation:fade-in var(--dur-base) var(--ease-out) both;
 }
 .sheet{
@@ -247,7 +247,7 @@ a{color:inherit; text-decoration:none}
 /* 커스텀 confirm 모달 */
 .confirm-modal{position:fixed; inset:0; z-index:70; display:flex; align-items:flex-end; justify-content:center}
 .confirm-modal__dim{
-  position:absolute; inset:0; background:rgba(0,0,0,.72);
+  position:absolute; inset:0; background:rgba(10,40,100,.55);
   animation:fade-in var(--dur-base) var(--ease-out) both;
 }
 .confirm-modal__box{
@@ -274,12 +274,12 @@ a{color:inherit; text-decoration:none}
 .bento{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px}
 .tile{
   position:relative; display:flex; flex-direction:column; gap:10px; min-height:156px; padding:20px; overflow:hidden;
-  border-radius:var(--r-card); border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03);
+  border-radius:var(--r-card); border:1px solid rgba(255,255,255,.38); background:rgba(255,255,255,.14);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
   transition:transform var(--dur-base) var(--ease-spring), background-color var(--dur-base) var(--ease-out);
 }
 .tile--light{border-color:transparent; background:var(--haze); backdrop-filter:none; -webkit-backdrop-filter:none}
-.tile:hover{background:rgba(255,255,255,.07)}
+.tile:hover{background:rgba(255,255,255,.2)}
 .tile--light:hover{background:#ffffff}
 .tile:active{transform:scale(.985)}
 .tile--wide{grid-column:span 2}
@@ -364,7 +364,7 @@ a{color:inherit; text-decoration:none}
   font-size:15px; font-weight:400; line-height:1.55; word-break:keep-all;
 }
 .bubble--bot{border-bottom-left-radius:4px}
-.bubble--user{background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-bottom-right-radius:4px}
+.bubble--user{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.6); color:#fff; border-bottom-right-radius:4px}
 .bubble--urgent{background:var(--danger-bg); border:1px solid var(--danger); color:var(--danger)}
 .bubble--typing{padding:14px 18px}
 .typing-dot{
@@ -399,7 +399,7 @@ a{color:inherit; text-decoration:none}
   transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
 }
 .mood-choice .e{font-size:22px; line-height:1; display:block}
-.mood-choice:hover{border-color:rgba(255,255,255,.4)}
+.mood-choice:hover{border-color:rgba(255,255,255,.7)}
 .mood-choice:active{transform:scale(.93)}
 .mood-choice.is-picked{background:var(--fill-hover); border-color:#fff; color:#fff}
 .chat-input-wrap{display:flex; gap:8px; align-items:flex-end; margin-top:4px}
@@ -506,12 +506,12 @@ a{color:inherit; text-decoration:none}
   font-size:13px; font-weight:500; color:var(--ink);
   transition:transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-out);
 }
-.cal__cell:hover:not(:disabled){border-color:rgba(255,255,255,.5)}
+.cal__cell:hover:not(:disabled){border-color:rgba(255,255,255,.8)}
 .cal__cell:active:not(:disabled){transform:scale(.92)}
 .cal__cell:disabled{opacity:.3; cursor:default}
 .cal__cell--blank{background:transparent; border-color:transparent; pointer-events:none}
 .cal__cell--today{border-color:#fff}
-.cal__cell.has-mood{background:color-mix(in srgb, var(--cell) 28%, #000); border-color:transparent}
+.cal__cell.has-mood{background:color-mix(in srgb, var(--cell) 38%, #0f4aa8); border-color:transparent}
 .cal__cell--today.has-mood{border-color:#fff}
 .cal__emoji{font-size:15px; line-height:1}
 
