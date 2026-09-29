@@ -1,6 +1,6 @@
 {
-  "name": "토닥+ — 마음을 토닥이고, 도움을 더하다",
-  "short_name": "토닥+",
+  "name": "토닥애플 — 마음을 토닥이고, 도움을 더하다",
+  "short_name": "토닥애플",
   "description": "학생의 심리상담 접근성을 높이는 상담·감정기록 앱. 간편 상담부터 위클래스 상담 예약, 감정달력까지 하나로 연결합니다.",
   "lang": "ko",
   "start_url": "./",
@@ -8,8 +8,8 @@
   "id": "todak-plus",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F4FBF7",
-  "theme_color": "#F4FBF7",
+  "background_color": "#012624",
+  "theme_color": "#012624",
   "categories": ["health", "education", "lifestyle"],
   "icons": [
     {

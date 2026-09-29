@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>토닥+ 브라우저 진단</title>
+<title>토닥애플 브라우저 진단</title>
 <style>
   body{font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
        font-size:15px; line-height:1.6; margin:0; padding:20px 18px 48px;
-       background:#F4FBF7; color:#16261E; -webkit-text-size-adjust:100%}
+       background:#100904; color:#16261E; -webkit-text-size-adjust:100%}
   h1{font-size:19px; margin:0 0 4px}
   p.lead{margin:0 0 18px; font-size:13px; color:#5C7268}
-  h2{font-size:14px; margin:22px 0 8px; color:#1F7A4D}
+  h2{font-size:14px; margin:22px 0 8px; color:#100904}
   ul{list-style:none; margin:0; padding:0}
   li{display:flex; gap:8px; align-items:flex-start; padding:7px 10px; border-radius:9px;
      background:#fff; border:1px solid #DCEAE2; margin-bottom:5px; font-size:13.5px}
@@ -19,7 +19,7 @@
   .no  .m{color:#C0553F}
   .no{background:#FCEEEA; border-color:#EFC9BE}
   .sum{margin:20px 0 0; padding:15px 16px; border-radius:14px; font-size:14px; font-weight:700}
-  .sum.good{background:#E6F5EC; color:#1F7A4D}
+  .sum.good{background:#E6F5EC; color:#100904}
   .sum.bad{background:#FCEEEA; color:#C0553F}
   pre{white-space:pre-wrap; word-break:break-all; font-size:11px; color:#5C7268;
       background:#fff; border:1px solid #DCEAE2; border-radius:9px; padding:10px; margin:8px 0 0}
@@ -27,8 +27,8 @@
 </head>
 <body>
 
-<h1>토닥+ 브라우저 진단</h1>
-<p class="lead">토닥+가 이 브라우저에서 동작하는 데 필요한 기능을 확인합니다.<br>
+<h1>토닥애플 브라우저 진단</h1>
+<p class="lead">토닥애플가 이 브라우저에서 동작하는 데 필요한 기능을 확인합니다.<br>
 결과 화면을 그대로 캡처해 알려 주세요.</p>
 
 <div id="out">확인 중…</div>
@@ -102,7 +102,7 @@
   html += '<h2>없어도 되지만 있으면 좋은 것</h2>' + list(optional);
   html += failed.length
     ? '<p class="sum bad">✕ ' + failed.length + '개가 지원되지 않습니다.<br>' +
-      failed.join(', ') + '<br><br>이 브라우저에서는 토닥+가 뜨지 않습니다. 다른 브라우저로 열어 보세요.</p>'
+      failed.join(', ') + '<br><br>이 브라우저에서는 토닥애플가 뜨지 않습니다. 다른 브라우저로 열어 보세요.</p>'
     : '<p class="sum good">○ 앱 실행에 필요한 기능은 모두 지원됩니다.' +
       (storageOK ? '' : '<br>다만 기록은 저장되지 않습니다.') + '</p>';
   html += '<h2>브라우저 정보</h2><pre>' +

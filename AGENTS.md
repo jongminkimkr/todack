@@ -4,10 +4,10 @@ This file provides guidance to agents when working with code in this repository.
 
 ## 프로젝트 구조
 
-**토닥+** — 빌드 도구·서버·외부 라이브러리가 전혀 없는 단일 HTML 파일 PWA.
+**토닥애플** — 빌드 도구·서버·외부 라이브러리가 전혀 없는 단일 HTML 파일 PWA.
 - `app.html` (2836줄) — iPhone 홈 화면 설치 전용. safe-area 변수(`--sat/--sab`), black-translucent 상태바.
 - `index.html` (2751줄) — 웹/PC 버전. **`selfTest()`는 여기에만 있다.**
-- `sw.js` — 현재 캐시 버전 **`todak-v16`**. 코드 수정 시 반드시 올릴 것.
+- `sw.js` — 현재 캐시 버전 **`todak-v17`**. 코드 수정 시 반드시 올릴 것.
 - 두 파일 내용은 항상 동기화. **하나를 바꾸면 반드시 둘 다 바꾼다.**
 
 ## 빌드·테스트 명령
@@ -54,7 +54,7 @@ selfTest()   // ~50건 어서션, 전부 true면 통과 (index.html에서만 실
 ```bash
 git push https://<GH_TOKEN>@github.com/jongminkimkr/todack.git main
 ```
-코드 수정 후 `sw.js`의 `const CACHE = 'todak-v16'` 버전을 올리지 않으면 폰·PWA에 이전 버전이 유지된다.
+코드 수정 후 `sw.js`의 `const CACHE = 'todak-v17'` 버전을 올리지 않으면 폰·PWA에 이전 버전이 유지된다.
 
 ## CLAUDE.md 규칙
 
