@@ -8,8 +8,8 @@
   "id": "todak-plus-app",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1753c2",
-  "theme_color": "#1753c2",
+  "background_color": "#f5f4f0",
+  "theme_color": "#f5f4f0",
   "categories": ["health", "education", "lifestyle"],
   "icons": [
     {
